@@ -111,15 +111,15 @@ else {fprintf(stderr,"There is no network interface up. run ifconfig.\n"); exit(
 addr+=4;
 strchr(addr,'\n')[0]='\0';
 strchr(addr,' ')[0]='\0';
-char peerf=0; 
+//char peerf=0; 
 psfp= popen("ip neigh show | grep -o 192.*","r");
  fgets(peern,INET_ADDRSTRLEN,psfp);
 if((addr2=strchr(peern,' ')))
  addr2[0]='\0';
  pclose(psfp);
 if(!peern[0]){ fprintf(stderr,"Connect first. It is still in wait to receive or send. Your ip is:%s for this session.\n",addr); peern=addr;}
-if(strcmp(strrchr(addr,'.')+1,"1")) //if server_ x.x.x.1
-peerf=1;
+//if(strcmp(strrchr(addr,'.')+1,"1")) //if server_ x.x.x.1
+//peerf=1;
 //printf("peerf:%d peerip:%s\n",peerf,peern);
 // ip route show | grep src.*
 //memory mapped i/o for sending
@@ -127,8 +127,8 @@ peerf=1;
 //multicast ttl for two d/t networks
 src.sin_family=AF_INET;//
 src.sin_port=htons(MCASTP);
-src.sin_addr.s_addr=inet_addr(addr);//htonl(INADDR_ANY);
-if(peerf)
+//src.sin_addr.s_addr=inet_addr(addr);//htonl(INADDR_ANY);
+//if(peerf)
 src.sin_addr.s_addr=inet_addr(peern);//htonl(INADDR_ANY);
 //inet_addr("192.168.43.214");
 imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
