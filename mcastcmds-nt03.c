@@ -66,7 +66,7 @@ struct in_addr mcastaddr;
 int so[NMUTEXFILES][NMUTEXFILES],sc,i,j,k,sock,sock2,n;
 unsigned int ttl=1; socklen_t mlen;  
 char message[MCASTBUF_SIZ];
-unsigned char c=0, d;
+unsigned char c=0,d;
 FILE *fp;
 struct ip_mreq imr;
 //char str[20],*str2; 
@@ -104,14 +104,13 @@ int fcompflag=0,srcflag=0;
 
 if((sock=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
  FILE *psfp= popen("ip route show | grep -o src.*192.*","r"); 
-   char *addr= (char *)malloc(sizeof(char *)*(5+INET_ADDRSTRLEN)),*peern=(char *)malloc(sizeof(char *)*INET_ADDRSTRLEN),*addr2;
+   char *addr= (char *)malloc(sizeof(char *)*(6+INET_ADDRSTRLEN)),*peern=(char *)malloc(sizeof(char *)*INET_ADDRSTRLEN),*addr2;
 //addr=strcpy(addr+4,"127.0.0.1");
-if(psfp && fgets(addr,INET_ADDRSTRLEN+5,psfp)!=NULL) pclose(psfp);
+if(psfp && fgets(addr,INET_ADDRSTRLEN+6,psfp)!=NULL) pclose(psfp);
 else {fprintf(stderr,"There is no network interface up. run ifconfig.\n"); exit(0);}
 addr+=4;
 strchr(addr,'\n')[0]='\0';
 strchr(addr,' ')[0]='\0';
-
 //char peerf=0; 
 psfp= popen("ip neigh show | grep -o 192.*","r");
  fgets(peern,INET_ADDRSTRLEN,psfp);
@@ -183,11 +182,11 @@ for(k=0;k<1;k++){
 bind(sock, (struct sockaddr *) &src, sizeof(src));
 //src=src;
 setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));// IP_DEFAULT_MULTICAST_TTL
-/*setsockopt(sock,IPPROTO_IP,
-IP_MULTICAST_LOOP, &ttl,sizeof(ttl));*/
+setsockopt(sock,IPPROTO_IP,
+IP_MULTICAST_LOOP, &ttl,sizeof(ttl));
 sc= sendto(sock,"test", 5, 0, (struct sockaddr *) &mcast, sizeof(mcast));
-if(sc==-1) {//printf("unable to send to group, do group exist? sending to one device ONLY.\n");
- mcast=src; srcflag=1;
+if(sc==-1) {//printf("Unable to send to group, do group exist? sending to one device ONLY.\n");
+mcast=src; srcflag=1;
  }
 
 
@@ -249,29 +248,28 @@ long ntimes= (size/BUF_SIZ);
 int rem = size%BUF_SIZ;
 char rem1 =rem/256; 
 char rem2=rem%256;
-char *buffer = (char *)malloc(sizeof(char *)*(size+MCASTBUF_SIZ-rem)); 
+char *buffer = (char *)malloc(sizeof(char *)*(size+MCASTBUF_SIZ)); 
 int numr; 
 
 if(!srcflag)
 sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &src,sizeof(src));
  
 sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast,sizeof(mcast)); 
-if(sc==-1) {printf("Unable to send, do group exist %s\n", inet_ntoa(mcast.sin_addr));exit(0);}
+if(sc==-1) {printf("Unable to send, do group exist%s\n", inet_ntoa(mcast.sin_addr));exit(0);}
 int fdin;
-void *srs,*dst=malloc(sizeof(void *)*2);
+void *srs,*dst;
 struct stat statbuf;
 fdin=open(argv[2],O_RDONLY);
 fstat(fdin,&statbuf);
 srs=mmap(0,statbuf.st_size,PROT_READ,MAP_SHARED,fdin,0);
 memcpy(buffer,srs,statbuf.st_size);
 close(fdin);
-for(j=0; j<200; j++)
+for(j=0; j<230; j++)
 do {numr=fread(buffer,sizeof(char),size,fp);} while(numr!=0);
 
 for(i=0,k=0;k< ntimes;k++,i+=BUF_SIZ){
-	memcpy(dst,buffer+i+MCASTBUF_SIZ-2,2);
-//  c=buffer[i+MCASTBUF_SIZ-1];
-//d=buffer[i+MCASTBUF_SIZ-2];
+  c=buffer[i+MCASTBUF_SIZ-1];
+d=buffer[i+MCASTBUF_SIZ-2];
 buffer[i+MCASTBUF_SIZ-1]=filehash3;
 buffer[i+MCASTBUF_SIZ-2]=userchannel;
 
@@ -279,11 +277,11 @@ if(!srcflag)
 while((n=sendto(sock,buffer+i,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &src, sizeof(src)))!=0) if(n!=-1) break; 
  
 while((n=sendto(sock,buffer+i,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
-memcpy(buffer+i+MCASTBUF_SIZ-2,dst, 2);
-//buffer[i+MCASTBUF_SIZ-1]=c;
-//buffer[i+MCASTBUF_SIZ-2]=d;
 
-for(j=0; j<200; j++)
+buffer[i+MCASTBUF_SIZ-1]=c;
+buffer[i+MCASTBUF_SIZ-2]=d;
+
+for(j=0; j<230; j++)
 do {numr=fread(buffer+i,sizeof(char),size-i,fp);} while(numr!=0);
 } 
 
