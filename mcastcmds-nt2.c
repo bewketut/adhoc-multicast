@@ -11,7 +11,7 @@
 #include <ctype.h>
 #define BUF_SIZ 899 
 #define MCASTBUF_SIZ (BUF_SIZ+2) 
-#define MCASTP 40120
+#define MCASTP 4010
 #define NMUTEXFILES  256
 #define MCASTP_S "3100"
 extern char *base256(int num,char *str);
@@ -26,7 +26,7 @@ int main(int argc, char **argv){
 struct sockaddr_in src,temp[NMUTEXFILES][NMUTEXFILES],mcast;
 struct in_addr mcastaddr;
 int so[NMUTEXFILES][NMUTEXFILES],sc,i,j,sock,n;
-unsigned int ttl; socklen_t mlen;  
+unsigned int ttl=2; socklen_t mlen;  
 char message[MCASTBUF_SIZ];
 unsigned char c,d;
 FILE *fp;
@@ -58,7 +58,7 @@ char *fcomp= (char *)malloc(sizeof(char *)*70);
 int fcompflag=0;
 if((sock=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 src.sin_family=AF_INET;
-src.sin_addr.s_addr=htonl(INADDR_ANY);
+src.sin_addr.s_addr=htonl(INADDR_ANY); //inet_addr("192.168.43.1"); 
 src.sin_port=htons(MCASTP);
 bind(sock, (struct sockaddr *) &src, sizeof(src));
 uid_t user;
@@ -81,6 +81,7 @@ return 0;
 if(argc>2 && strcmp(argv[1],"-m")){
 sendlabel:
 setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl)); 
+mcast=src;
 if(!strcmp(argv[1],"-c")){
 char *command=(char *) malloc(sizeof(char)*400);
 strcpy(command,argv[1]); 
