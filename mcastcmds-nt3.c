@@ -108,9 +108,9 @@ if((sock=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 //addr=strcpy(addr+4,"127.0.0.1");
 if(psfp && fgets(addr,INET_ADDRSTRLEN+6,psfp)!=NULL) pclose(psfp);
 else {fprintf(stderr,"There is no network interface up. run ifconfig.\n"); exit(0);}
+addr+=4;
 strchr(addr,'\n')[0]='\0';
 strchr(addr,' ')[0]='\0';
-addr+=4;
 char peerf=0; 
 psfp= popen("ip neigh show | grep -o 192.*","r");
  fgets(peern,INET_ADDRSTRLEN,psfp);
