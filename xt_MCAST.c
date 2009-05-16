@@ -5,6 +5,7 @@
 #include "compat_xtables.h"
 #include <linux/skbuff.h>
 #include <linux/module.h>
+#include <linux/jiffies.h>
 
 #include <net/ipv6.h>
 #include <net/ip.h>
@@ -34,6 +35,20 @@ static struct mtable *mgrp_hash;	//client list indexed by hash(gid)->cli_ip
 
 static DEFINE_MUTEX(mcast_mutex);
 static DEFINE_SPINLOCK(mcast_lock); 
+
+static void delete_list(struct hlist_head *head){
+            struct xt_mcast *entry;
+            struct hlist_node *pos,*temp;
+             pos = head->first;
+            while(pos!=NULL){
+	        entry = hlist_entry(pos, struct xt_mcast, node);
+                temp= pos;
+                 pos = NULL;    //No pter reshuffle here
+                 pos= temp->next;
+                kfree(entry);
+              }
+
+}
 static unsigned int
 init_new_entry(struct xt_mcast *entry, __be32 ip, uint32_t h,
 	       struct mtable *t, uint16_t expire)
@@ -47,7 +62,7 @@ init_new_entry(struct xt_mcast *entry, __be32 ip, uint32_t h,
     spin_lock_bh(&mcast_lock);
     hlist_for_each(pos, &t->members[h]) {
 	entry = hlist_entry(pos, struct xt_mcast, node);
-	if (jiffies > entry->timeout) {	//timeout
+	if (entry!=NULL && time_before(jiffies,entry->timeout)) {	//timeout
 	    //the first time this we want to delete all but the first expired
             //go until you find the first timeout and delete downwards.
 	    pos = pos->next;	//don't delete pos- just advance it
@@ -64,22 +79,18 @@ init_new_entry(struct xt_mcast *entry, __be32 ip, uint32_t h,
     if (entry == NULL){
         spin_unlock_bh(&mcast_lock);
 	entry = kmalloc(sizeof(struct xt_mcast), GFP_KERNEL);
+        printk("Allocating for entry\n");
         spin_lock_bh(&mcast_lock);
     }
+    
     entry->ip = ip;
     entry->timeout = jiffies + expire * HZ;
+        printk("new entry="NIPQUAD_FMT " and expires %us\n", NIPQUAD(entry->ip),jiffies_to_msecs(entry->timeout-jiffies)) ;
     hlist_add_head(&entry->node, &t->members[h]);
     spin_unlock_bh(&mcast_lock);
     return NF_ACCEPT;
 }
-static void delete_list(struct hlist_head *head){
-            struct xt_mcast *entry;
-            struct hlist_node *pos,*temp;
-     hlist_for_each_entry_safe(entry,pos,temp,head,node){
-                hlist_del(&entry->node);
-                kfree(entry);
- }
-}
+
 
 
 static inline uint32_t mcast_hash(u32 name)
@@ -89,15 +100,20 @@ static inline uint32_t mcast_hash(u32 name)
 static struct hlist_node *lookup(__be32 hkey, __be32 ip, struct mtable *t)
 {
     struct xt_mcast *entry;
-    struct hlist_node *n;
-	mutex_lock(&mcast_mutex);
-    hlist_for_each_entry(entry, n, &t->members[hkey], node) {
-	if (entry->ip == ip) {
-			mutex_unlock(&mcast_mutex);
-	    return n;
-	}
+    struct hlist_node *n=NULL;
+    if(t==NULL) 
+    { 
+		printk("Table is NULL\n");
+      return NULL;
     }
-	mutex_unlock(&mcast_mutex);
+    mutex_lock(&mcast_mutex);
+    hlist_for_each_entry(entry, n, &t->members[hkey], node) {
+	if (entry!=NULL && entry->ip == ip) {
+    mutex_unlock(&mcast_mutex);
+	    return n;
+          }
+    }
+    mutex_unlock(&mcast_mutex);
     return NULL;
 }
 
@@ -107,16 +123,15 @@ static struct hlist_node *get_headnode(struct mtable *t, uint32_t h)
     return n;
 }
 
-static unsigned int igmp_report(const struct sk_buff *skb,
-				struct igmphdr *ih)
+static unsigned int igmp_report(const struct iphdr *iph,
+				struct igmphdr *igmph)
 {
 
-    __be32 cli = ip_hdr(skb)->saddr, grp = ih->group;
+    __be32 cli = iph->saddr, grp = igmph->group;
     struct xt_mcast *entry = NULL, *head_entry;	//aka head
     uint32_t h = mcast_hash(grp);
     struct hlist_node *head_node = get_headnode(mgrp_hash, h);
     struct hlist_node *entry_node;
-
     if (head_node == NULL)
 	return init_new_entry(entry, cli, h, mgrp_hash, GRP_EXPIRE);
     //go fish 
@@ -131,7 +146,6 @@ static unsigned int igmp_report(const struct sk_buff *skb,
 	return NF_ACCEPT;	//it the head. don't do anything 
     spin_lock_bh(&mcast_lock);
     hlist_del(entry_node); //shuffle and fix
-
     hlist_add_head(&entry->node, &mgrp_hash->members[h]);
     //we want this node to be head so we need to del:
     spin_unlock_bh(&mcast_lock);
@@ -143,10 +157,10 @@ static unsigned int igmp_report(const struct sk_buff *skb,
  * we probably just need to ignore this and use
  * our time based cleaning
  */
-static unsigned igmp_leave(const struct sk_buff *skb, struct igmphdr *ih)
+static unsigned igmp_leave(const struct iphdr *iph, struct igmphdr *igmph)
 {
-    __be32 cli = ip_hdr(skb)->saddr;
-    uint32_t h = mcast_hash(ih->group);
+    __be32 cli = iph->saddr;
+    uint32_t h = mcast_hash(igmph->group);
     struct hlist_node *entry_node;
     struct xt_mcast *entry, *head_entry;	//aka head
     struct hlist_node *head_node = get_headnode(mgrp_hash, h);
@@ -161,6 +175,7 @@ static unsigned igmp_leave(const struct sk_buff *skb, struct igmphdr *ih)
     //Note: Also IGMPv1 don't issue leave
     //The simple solution here is to make the head of the group last_seen.
     //which often is true
+   spin_lock_bh(&mcast_lock);
     head_entry = hlist_entry(head_node, struct xt_mcast, node);
     entry = hlist_entry(entry_node, struct xt_mcast, node);
     if (head_entry->ip == entry->ip)	//promote the successor to be head
@@ -169,12 +184,12 @@ static unsigned igmp_leave(const struct sk_buff *skb, struct igmphdr *ih)
     //we also want to delete the msrc_hash  entries we built
     hlist_del(entry_node);
     kfree(entry);
+    spin_unlock_bh(&mcast_lock);
     return NF_ACCEPT;
 }
 //Incoming traffic MCAST traffic
-static unsigned int mcast_handler4(const struct sk_buff *skb)
+static unsigned int mcast_handler4(const struct iphdr *iph)
 {
-    struct iphdr *iph = ip_hdr(skb);
     __be32 msrc_ip = iph->saddr;
     __be32 mgrp_ip = iph->daddr;
     uint32_t hs = mcast_hash(msrc_ip);	//h(msrc_ip)->cli_ip       we do cartesian product
@@ -197,49 +212,21 @@ static unsigned int mcast_handler4(const struct sk_buff *skb)
     return NF_DROP;
 }
 
-
-/**OUTGOING traffic only thus client = ip_hrd(skb)->saddr;
- * mcast_src_addr= ip_hdr(skb)->daddr;
- */
-//
-static unsigned int unicast_handler(const struct sk_buff *skb)
-{
-    struct iphdr *iph = ip_hdr(skb);
-    __be32 msrc_ip = iph->daddr;
-    __be32 mcli_ip = iph->saddr;
-    uint32_t hs = mcast_hash(msrc_ip);
-    struct hlist_node *mcli_node;
-    struct xt_mcast *mcli = NULL;
-    //the possible source of inefficiencies are a client  joining a lot of groups
-    //and msrc multicasting  to *too many* clients (ref:linked list search complexity)
-    // but traditional multicast is supposes to be pretty symmetrical
-    //first check if this relation already exists.
-    mcli_node = lookup(hs, mcli_ip, msrc_hash);
-//here it is *may* be possible a cli is in msrc_hash and msrc is not msrc_hash: think about it!!
-//we cannot  use different a perfect hashing function for the msrc as it is pretty random
-    if (mcli_node == NULL)
-	return init_new_entry(mcli, mcli_ip, hs, msrc_hash, SRC_EXPIRE);
-    //we want timer to be updated
-    spin_lock_bh(&mcast_lock);
-    mcli = hlist_entry(mcli_node, struct xt_mcast, node);
-    mcli->timeout = jiffies + SRC_EXPIRE * HZ;
-    spin_unlock_bh(&mcast_lock);
-    return NF_ACCEPT;
-};
 static unsigned
-int igmp_handler(const struct sk_buff *skb)
+int igmp_handler(const struct sk_buff *skb, const struct iphdr *iph)
 {
-    struct igmphdr *ih;
-    ih = igmp_hdr(skb);
-    if (ih == NULL)
+    struct igmphdr *igmph;
+    igmph = igmp_hdr(skb);
+    if (igmph == NULL)
 	return NF_ACCEPT;	//we can't properly strip the header (i.e already problematic)
-    switch (ih->type) {
+    switch (igmph->type) {
     case IGMP_HOST_MEMBERSHIP_REPORT:
 	//fallthru
     case IGMPV2_HOST_MEMBERSHIP_REPORT:
-	return igmp_report(skb, ih);
+    case IGMPV3_HOST_MEMBERSHIP_REPORT:         
+	return igmp_report(iph, igmph);
     case IGMP_HOST_LEAVE_MESSAGE:
-	return igmp_leave(skb, ih);	//from IGMP_V2 to delete a group (ehnancement on Time interval timer) 
+	return igmp_leave(iph, igmph);	//from IGMP_V2 to delete a group (ehnancement on Time interval timer) 
 	/**case IGMPV3_HOST_MEMBERSHIP_REPORT  
      *Note: The routers and hosts are too modern: don't think so.Likely there is one INCAPABLE
      *IGMPV3 is SSM and has already mechanism put in place for filtering 
@@ -255,7 +242,6 @@ int igmp_handler(const struct sk_buff *skb)
 static inline bool ipv6_is_multicast(const struct in6_addr *addr)
 {
     __be32 st = addr->s6_addr32[0];
-//__be is simple *annotation* only need! 
     return ((st & htonl(0xFF000000)) == htonl(0xFF000000));
 }
 
@@ -270,51 +256,91 @@ static inline bool is_multicast(const struct sk_buff *skb, u_int8_t family)
     case NFPROTO_IPV6:
 	is_multicast = ipv6_is_multicast(&ipv6_hdr(skb)->daddr);
 	break;
-    default:
-	WARN_ON(1);
-	break;
     }
     return is_multicast;
 }
-static unsigned int mcast_tg4(const struct sk_buff *skb,
-			      const struct xt_target_param *par)
-{
-    if (!is_multicast(skb, par->family))	//broadcast also mcast so: skb->pkt_type==PACKET_MULTICAST check?? 
-    {
-	if (ip_hdr(skb)->protocol == IPPROTO_UDP)
-	    return mcast_handler4(skb);	//there maybe NF_DROPs
-	if (ip_hdr(skb)->protocol == IPPROTO_IGMP)
-	    return igmp_handler(skb);	//always NF_ACCEPT just for snooping
-	return NF_ACCEPT;
-    } else if (ip_hdr(skb)->protocol == IPPROTO_UDP)
-	return unicast_handler(skb);	//this needs to make fast construction of <s,c> pair
-
-    return NF_ACCEPT;
-}
-
-static inline void init_table(struct mtable *t, uint32_t nmembers)
+static inline struct mtable *init_table( uint32_t nmembers)
 {
     uint32_t i;
-    t = kmalloc(sizeof(*t) + nmembers * sizeof(t->members[0]), GFP_KERNEL);
+	struct mtable *t;
+    t = kzalloc(sizeof(*t) + nmembers * sizeof(t->members[0]), GFP_KERNEL);
     for (i = 0; i < nmembers; i++)
 	INIT_HLIST_HEAD(&t->members[i]);
+     return t;
 }
-static void delete_table(struct mtable *t, uint32_t nsize)
+static inline void delete_table(struct mtable *t, uint32_t nsize)
 {
     uint32_t i;
+    if(t==NULL) return;
     for (i = 0; i < nsize; i++) 
      delete_list(&t->members[i]);
         kfree(t);
 }
+
+/**OUTGOING traffic only thus client = ip_hrd(skb)->saddr;
+ * mcast_src_addr= ip_hdr(skb)->daddr;
+ */
+static unsigned int unicast_handler(const struct iphdr *iph)
+{
+    __be32 mcli_ip = iph->saddr;
+    uint32_t hs = mcast_hash(iph->daddr);
+    struct hlist_node *mcli_node;
+    struct xt_mcast *mcli = NULL;
+        printk("protocol: %d\n", iph->protocol);
+        printk("source: "NIPQUAD_FMT " dest: " NIPQUAD_FMT "\n",NIPQUAD(iph->saddr),NIPQUAD(iph->daddr));
+    mcli_node = lookup(hs, mcli_ip, msrc_hash);
+    if (mcli_node == NULL)
+	return init_new_entry(mcli, mcli_ip, hs, msrc_hash, SRC_EXPIRE);
+    //the possible source of inefficiencies are a client  joining a lot of groups
+    //and msrc multicasting  to *too many* clients (ref:linked list search complexity)
+    // but traditional multicast is supposes to be pretty symmetrical
+    //first check if this relation already exists.
+//here it is *may* be possible a cli is in msrc_hash and msrc is not msrc_hash: think about it!!
+//we cannot  use different a perfect hashing function for the msrc as it is pretty random
+    //we want timer to be updated
+    spin_lock_bh(&mcast_lock);
+    mcli = hlist_entry(mcli_node, struct xt_mcast, node);
+    mcli->timeout = jiffies + SRC_EXPIRE * HZ;
+    spin_unlock_bh(&mcast_lock);
+
+    return NF_ACCEPT;
+}
+
+
+static unsigned int mcast_tg4(const struct sk_buff **pskb,
+			      const struct xt_target_param *par)
+{
+       const struct sk_buff *skb = *pskb;
+       const struct iphdr *iph = ip_hdr(skb);
+
+    if (ipv4_is_multicast(iph->daddr))	//broadcast also mcast so: skb->pkt_type==PACKET_MULTICAST check?? 
+    {
+        
+	if (ip_hdr(skb)->protocol == IPPROTO_UDP)
+	    return mcast_handler4(iph);	//there maybe NF_DROPs
+	if (ip_hdr(skb)->protocol == IPPROTO_IGMP)
+
+	    return igmp_handler(skb,iph);	//always NF_ACCEPT just for snooping
+	return NF_ACCEPT;
+    }
+    else if (ip_hdr(skb)->protocol == IPPROTO_UDP){
+ //we are not sure the heartbeat should *only*  be udp
+        printk("It is unicast UDP\n");
+         
+	return unicast_handler(iph);	//this needs to make fast construction of <s,c> pair
+     }
+    return NF_ACCEPT;
+}
+
 
 
 static struct xt_target mcast_tg_reg __read_mostly = {
     .name = "MCAST",
     .revision = 0,
     .family = NFPROTO_IPV4,
-    .table = "filter",
     .proto = IPPROTO_UDP,
     .target = mcast_tg4,
+    .targetsize= XT_ALIGN(0),
     .me = THIS_MODULE,
 };
 
@@ -330,15 +356,15 @@ static struct xt_target mcast_tg_reg __read_mostly = {
 static int __init mcast_tg_init(void)
 {
 
-    init_table(mgrp_hash, MGRP_SIZE);
-    init_table(msrc_hash, MSRC_SIZE);
+    mgrp_hash=init_table(MGRP_SIZE);
+    msrc_hash=init_table(MSRC_SIZE);
 
     return xt_register_target(&mcast_tg_reg);
 }
 static void __exit mcast_tg_exit(void)
 {
-//    delete_table(mgrp_hash, MGRP_SIZE);
- //   delete_table(msrc_hash, MSRC_SIZE);
+    delete_table(mgrp_hash, MGRP_SIZE);
+    delete_table(msrc_hash, MSRC_SIZE);
     xt_unregister_target(&mcast_tg_reg);
 }
 
