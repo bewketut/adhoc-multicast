@@ -66,10 +66,10 @@ init_new_entry(struct xt_mcast *entry, __be32 ip, uint32_t h,
     if (entry == NULL) {
 	spin_unlock_bh(&mcast_lock);
 	entry = kmalloc(sizeof(struct xt_mcast), GFP_KERNEL);
-	printk("Allocating for entry\n");
+	printk("Allocating for NEW entry\n");
 	spin_lock_bh(&mcast_lock);
     }
-
+    else printk("Updating entry\n");
     entry->ip = ip;
     entry->timeout = jiffies + expire * HZ;
     printk("new entry=" NIPQUAD_FMT " and expires %us\n",
@@ -119,11 +119,12 @@ static unsigned int igmp_report(const struct iphdr *iph,
     uint32_t h = mcast_hash(grp);
     struct hlist_node *head_node = get_headnode(mgrp_hash, h);
     struct hlist_node *entry_node;
+    printk("IGMP REPORT\n");
     if (head_node == NULL)
 	return init_new_entry(entry, cli, h, mgrp_hash, GRP_EXPIRE);
     //go fish 
     entry_node = lookup(h, cli, mgrp_hash);	//here there is grp alrdy but is the client in it.
-    if (entry_node == NULL)	// this is new client;
+    if (entry_node == NULL)
 	return init_new_entry(entry, cli, h, mgrp_hash, GRP_EXPIRE);
     //good the client is in the grp. 
     spin_lock_bh(&mcast_lock);
@@ -131,13 +132,14 @@ static unsigned int igmp_report(const struct iphdr *iph,
     entry = hlist_entry(entry_node, struct xt_mcast, node);
     entry->timeout = jiffies + GRP_EXPIRE * HZ;
     if (entry->ip == head_entry->ip)
-	return NF_ACCEPT;	//it the head. don't do anything 
+       goto out;
+       //it the head. don't do anything 
     hlist_del(entry_node);	//shuffle and fix
     hlist_add_head(&entry->node, &mgrp_hash->members[h]);
     //we want this node to be head so we need to del:
-    spin_unlock_bh(&mcast_lock);
     //NOTE: when deleting a grp if it the head pointer  
-    return NF_ACCEPT;
+ out: spin_unlock_bh(&mcast_lock);
+	return NF_ACCEPT;	
 }
 
 /* this probably will increase complexity
@@ -151,6 +153,7 @@ static unsigned igmp_leave(const struct iphdr *iph, struct igmphdr *igmph)
     struct hlist_node *entry_node;
     struct xt_mcast *entry, *head_entry;	//aka head
     struct hlist_node *head_node = get_headnode(mgrp_hash, h);
+    printk("IGMP leave called");
 /* entry is NULL => "I am leaving this grp"-yet there is no such grp or doesn't have me
  * shouldn't be possible */
     if (head_node == NULL)
@@ -170,6 +173,7 @@ static unsigned igmp_leave(const struct iphdr *iph, struct igmphdr *igmph)
     //else it is the last entry
     //we also want to delete the msrc_hash  entries we built
     hlist_del(entry_node);
+    printk("Deleted entry:" NIPQUAD_FMT "\n",NIPQUAD(entry->ip) );
     kfree(entry);
     spin_unlock_bh(&mcast_lock);
     return NF_ACCEPT;
@@ -205,6 +209,7 @@ int igmp_handler(const struct sk_buff *skb, const struct iphdr *iph)
 {
     struct igmphdr *igmph;
     igmph = igmp_hdr(skb);
+    printk("IGMP called\n");
     if (igmph == NULL)
 	return NF_ACCEPT;	//we can't properly strip the header (i.e already problematic)
     switch (igmph->type) {
@@ -214,7 +219,10 @@ int igmp_handler(const struct sk_buff *skb, const struct iphdr *iph)
     case IGMPV3_HOST_MEMBERSHIP_REPORT:
 	return igmp_report(iph, igmph);
     case IGMP_HOST_LEAVE_MESSAGE:
+         {
+           printk("LEAVE CALLED\n");
 	return igmp_leave(iph, igmph);	//from IGMP_V2 to delete a group (ehnancement on Time interval timer) 
+         }
 	/**case IGMPV3_HOST_MEMBERSHIP_REPORT  
      *Note: The routers and hosts are too modern: don't think so.Likely there is one INCAPABLE
      *IGMPV3 is SSM and has already mechanism put in place for filtering 
@@ -311,7 +319,7 @@ static unsigned int mcast_tg4(const struct sk_buff **pskb,
 	return NF_ACCEPT;
     } else if (ip_hdr(skb)->protocol == IPPROTO_UDP) {
 	//we are not sure the heartbeat should *only*  be udp
-	printk("It is unicast UDP\n");
+//	printk("It is unicast UDP\n");
 
 	return unicast_handler(iph);	//this needs to make fast construction of <s,c> pair
     }
@@ -323,7 +331,6 @@ static struct xt_target mcast_tg_reg __read_mostly = {
     .name = "MCAST",
     .revision = 0,
     .family = NFPROTO_IPV4,
-    .proto = IPPROTO_UDP,
     .target = mcast_tg4,
     .targetsize = XT_ALIGN(0),
     .me = THIS_MODULE,
@@ -346,7 +353,6 @@ static void __exit mcast_tg_exit(void)
 
 module_init(mcast_tg_init);
 module_exit(mcast_tg_exit);
-
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("ipt_MCAST");
 MODULE_DESCRIPTION("Xtables: Mcast packet filter");
