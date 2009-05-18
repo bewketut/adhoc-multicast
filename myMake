@@ -1,7 +1,0 @@
-obj-m += compat_xtables.o xt_LED.o
-
-all:
-	make -C	/lib/modules/`uname -r`/build M=`pwd` 
-clean:
-	make -C	/lib/modules/`uname -r`/build M=`pwd` clean 
-
