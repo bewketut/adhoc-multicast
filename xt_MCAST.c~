@@ -46,7 +46,7 @@ init_new_entry(struct xt_mcast *entry, __be32 ip, uint32_t h,
 //we want to avoid as many memory alloc calls as possible 
     struct hlist_node *pos, *temp;
     struct xt_mcast *temp_entry;
-    spin_lock_bh(&mcast_lock);
+     spin_lock_bh(&mcast_lock);
     hlist_for_each(pos, &t->members[h]) {
 	entry = hlist_entry(pos, struct xt_mcast, node);
 	if (entry != NULL && time_before(jiffies, entry->timeout)) {	//timeout
@@ -63,15 +63,13 @@ init_new_entry(struct xt_mcast *entry, __be32 ip, uint32_t h,
 	    break;
 	}
     }
-    if (entry == NULL)
+    if (entry == NULL) 
 	entry = kmalloc(sizeof(struct xt_mcast), GFP_ATOMIC);
-    else
-	printk("Updating entry\n");
+    else printk("Updating entry\n");
     entry->ip = ip;
     entry->timeout = jiffies + expire * HZ;
     printk("ip =" NIPQUAD_FMT " expires %u minutes\n",
-	   NIPQUAD(entry->ip),
-	   jiffies_to_msecs(entry->timeout - jiffies) / 1000 * 60);
+	   NIPQUAD(entry->ip), jiffies_to_msecs(entry->timeout - jiffies)/1000*60);
     hlist_add_head(&entry->node, &t->members[h]);
     spin_unlock_bh(&mcast_lock);
     return NF_ACCEPT;
@@ -94,21 +92,21 @@ static struct hlist_node *lookup(__be32 hkey, __be32 ip, struct mtable *t)
     //use of the mutex should be appropriate here-Noisy Kernel unless new!!
     spin_lock_bh(&mcast_lock);
     hlist_for_each_entry(entry, n, &t->members[hkey], node) {
-	if (entry->ip == ip) {
-	    spin_unlock_bh(&mcast_lock);
+	if ( entry->ip == ip) {
+              spin_unlock_bh(&mcast_lock);
 	    return n;
 	}
     }
-    spin_unlock_bh(&mcast_lock);
+              spin_unlock_bh(&mcast_lock);
     return NULL;
 }
 
 static struct hlist_node *get_headnode(struct mtable *t, uint32_t h)
 {
-    return t->members[h].first;
+         return t->members[h].first;
 }
 
-static unsigned int igmp_report(__be32 cli, __be32 grp)
+static unsigned int igmp_report(__be32 cli,__be32 grp)
 {
 
     struct xt_mcast *entry = NULL, *head_entry;	//aka head
@@ -116,13 +114,13 @@ static unsigned int igmp_report(__be32 cli, __be32 grp)
 
     struct hlist_node *head_node = get_headnode(mgrp_hash, h);
     struct hlist_node *entry_node;
-    printk(NIPQUAD_FMT "->" NIPQUAD_FMT "\n", NIPQUAD(grp), NIPQUAD(cli));
+     printk(NIPQUAD_FMT "->" NIPQUAD_FMT "\n",NIPQUAD(grp),NIPQUAD(cli)); 
     if (head_node == NULL)
 	return init_new_entry(entry, cli, h, mgrp_hash, GRP_EXPIRE);
     //go fish 
 
     entry_node = lookup(h, cli, mgrp_hash);	//here there is grp alrdy but is the client in it.
-    if (entry_node == NULL) {
+    if (entry_node == NULL){
 	return init_new_entry(entry, cli, h, mgrp_hash, GRP_EXPIRE);
     }
     spin_lock_bh(&mcast_lock);
@@ -131,14 +129,14 @@ static unsigned int igmp_report(__be32 cli, __be32 grp)
     entry = hlist_entry(entry_node, struct xt_mcast, node);
     entry->timeout = jiffies + GRP_EXPIRE * HZ;
     if (entry->ip == head_entry->ip)
-	goto out;
-    //it the head. don't do anything 
+       goto out;
+       //it the head. don't do anything 
     hlist_del(entry_node);	//shuffle and fix
     hlist_add_head(&entry->node, &mgrp_hash->members[h]);
     //we want this node to be head so we need to del:
     //NOTE: when deleting a grp if it the head pointer  
-  out:spin_unlock_bh(&mcast_lock);
-    return NF_ACCEPT;
+ out: spin_unlock_bh(&mcast_lock);
+	return NF_ACCEPT;	
 }
 
 /* this probably will increase complexity and superflous somehow
@@ -157,19 +155,19 @@ static unsigned igmp_leave(__be32 cli, __be32 grp)
     if (head_node == NULL)
 	return NF_ACCEPT;
     entry_node = lookup(h, cli, mgrp_hash);
-    if (entry_node == NULL)	//weird
+    if (entry_node == NULL) //weird
 	return NF_ACCEPT;
     entry = hlist_entry(entry_node, struct xt_mcast, node);
     //some clients may just join and leave straight away after becoming last_seen
     //Note: Also IGMPv1 don't issue leave
     //The simple solution here is to make the head of the group last_seen.
     //which often is true
-
+    
     head_entry = hlist_entry(head_node, struct xt_mcast, node);
     entry = hlist_entry(entry_node, struct xt_mcast, node);
-
+    
     spin_lock_bh(&mcast_lock);
-    if (head_entry->ip == entry->ip && entry_node->next != NULL)	//promote the successor to be head
+    if (head_entry->ip == entry->ip && entry_node->next!=NULL)	//promote the successor to be head
 	hlist_add_head(entry_node->next, &mgrp_hash->members[h]);
     //else it is the last entry
     hlist_del(entry_node);
@@ -190,48 +188,48 @@ static unsigned int mcast_handler4(const struct iphdr *iph)
     struct hlist_node *n, *n2;
     //check if there exists any client(s) that are mapped to msrc_ip
     //while looking hash them and check if they have 
-    spin_lock_bh(&mcast_lock);
+   spin_lock_bh(&mcast_lock);
     hlist_for_each_entry(msrc2cli, n, &msrc_hash->members[hs], node) {
 	hlist_for_each_entry(mgrp2cli, n2, &mgrp_hash->members[hg], node) {
 	    if (msrc2cli->ip == mgrp2cli->ip) {	//success
-		spin_unlock_bh(&mcast_lock);
+   		spin_unlock_bh(&mcast_lock);
 		return NF_ACCEPT;	//remember we won't update anything here (
 	    }
 	}
     }
-    spin_unlock_bh(&mcast_lock);
+   spin_unlock_bh(&mcast_lock);
     return NF_DROP;
 }
 
 static unsigned
-int igmp_handler(const struct iphdr *iph, const struct sk_buff *skb)
+int igmp_handler(const struct iphdr *iph,const struct sk_buff *skb)
 {
-    const struct igmphdr *igmph = igmp_hdr(skb);
+    const struct igmphdr *igmph=igmp_hdr(skb); 
     const struct igmpv3_grec *rec3;
     switch (igmph->type) {
     case IGMP_HOST_MEMBERSHIP_REPORT:
 	//fallthru
     case IGMPV2_HOST_MEMBERSHIP_REPORT:
-	return igmp_report(iph->saddr, iph->daddr);
-    case IGMPV3_HOST_MEMBERSHIP_REPORT:           //there is special V2 equivalent case we can handle per rfc3376
-	if (ntohs(igmpv3_report_hdr(skb)->ngrec) == 1) {	//ONLY one grp 
-	    rec3 = igmpv3_report_hdr(skb)->grec;
-	    if (ntohs(rec3->grec_nsrcs) == 0)	//No src list
-		switch (rec3->grec_type){
-		case IGMPV3_CHANGE_TO_EXCLUDE:
-		    return igmp_report(iph->saddr, rec3->grec_mca);
-                case IGMPV3_CHANGE_TO_INCLUDE:
-	            return igmp_leave(iph->saddr, rec3->grec_mca);
-                }
-	}
-	return NF_ACCEPT;
+            return	 igmp_report(iph->saddr,iph->daddr);
+    case IGMPV3_HOST_MEMBERSHIP_REPORT:
+            if(ntohs(igmpv3_report_hdr(skb)->ngrec)== 1){  //number of group record else we can't handle
+            rec3 = igmpv3_report_hdr(skb)->grec;
+            if(ntohs(rec3->grec_nsrcs)== 0) //we don't have exclude rules
+  			//follow rfc rfc3376 equivalent rule
+            switch(rec3->grec_type)
+              case IGMPV3_CHANGE_TO_EXCLUDE:
+                 return igmp_report(iph->saddr, rec3->grec_mca); 
+              case IGMPV3_CHANGE_TO_INCLUDE:
+                 return igmp_leave(iph->saddr,rec3->grec_mca);
+             }
+            return NF_ACCEPT;
 
     case IGMP_HOST_LEAVE_MESSAGE:
 	return igmp_leave(iph->saddr, iph->daddr);	//from IGMP_V2 to delete a group (ehnancement on Time interval timer) 
 	/**case IGMPV3_HOST_MEMBERSHIP_REPORT  
      *Note: The routers and hosts are too modern: don't think so.Likely there is one INCAPABLE
      *IGMPV3 is SSM and has already mechanism put in place for filtering 
-     *But many NICs construct the IGMPv1 & v2 reports types and it is often the case IGMPv3 capable 
+     *But most NICs construct the IGMPv1 & v2 reports types and it is often the case IGMPv3 capable 
      *router falls back to using those types.k
       *case IGMP_HOST_MEMBERSHIP_QUERY: return NF_ACCEPT; No information to snoop from this.
         **/
@@ -271,10 +269,10 @@ static inline void delete_table(struct mtable *t, uint32_t nsize)
     uint32_t i;
     if (t == NULL)
 	return;
-    spin_lock_bh(&mcast_lock);
+     spin_lock_bh(&mcast_lock);
     for (i = 0; i < nsize; i++)
 	delete_list(&t->members[i]);
-    spin_unlock_bh(&mcast_lock);
+     spin_unlock_bh(&mcast_lock);
     kfree(t);
 }
 
@@ -290,7 +288,7 @@ static unsigned int unicast_handler(const struct iphdr *iph)
     mcli_node = lookup(hs, mcli_ip, msrc_hash);
     if (mcli_node == NULL)
 	return init_new_entry(mcli, mcli_ip, hs, msrc_hash, SRC_EXPIRE);
-
+    
     spin_lock_bh(&mcast_lock);
     mcli = hlist_entry(mcli_node, struct xt_mcast, node);
     mcli->timeout = jiffies + SRC_EXPIRE * HZ;
@@ -305,18 +303,17 @@ static unsigned int mcast_tg4(const struct sk_buff **pskb,
 {
     const struct sk_buff *skb = *pskb;
     const struct iphdr *iph = ip_hdr(skb);
-    if (iph == NULL)
-	return NF_ACCEPT;
+     if(iph==NULL) return NF_ACCEPT;
     if (ipv4_is_multicast(iph->daddr))	//broadcast also mcast so: skb->pkt_type==PACKET_MULTICAST check?? 
     {
 
 	if (ip_hdr(skb)->protocol == IPPROTO_UDP)
 	    return mcast_handler4(iph);	//there maybe NF_DROPs
 	if (ip_hdr(skb)->protocol == IPPROTO_IGMP)
-	    return igmp_handler(iph, skb);	//always NF_ACCEPT just for snooping
+	    return igmp_handler(iph,skb);	//always NF_ACCEPT just for snooping
     } else if (ip_hdr(skb)->protocol == IPPROTO_UDP) {
 	//the heartbeat protocol can be ICMP, or any other so long as we 
-	// get its ip header to extract msrc.
+        // get its ip header to extract msrc.
 	return unicast_handler(iph);	//this needs to make fast construction of <s,c> pair
     }
     return NF_ACCEPT;
