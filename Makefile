@@ -22,7 +22,9 @@ all: lib
 clean:
 	make -C /lib/modules/`uname -r`/build M=`pwd` clean
 	rm -rf libxt_MCAST.so
-
+install:
+	cp *.so  $(xtlibdir) 
+	cp *.ko /lib/modules/`uname -r`/extra
 
 lib:	libxt_MCAST.so  
 lib%.so: lib%.oo

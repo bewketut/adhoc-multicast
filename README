@@ -1,0 +1,23 @@
+This module provides a filter for incoming multicast traffic by doing the f/g:
+1. Snooping Subscibe (or join) messages and storing the client by its group
+hash
+2. This is the part where one sort of NEEDs to pierce a hole for the multicast
+source- its unicast address. We store the client by the multicast source hash.
+
+3. when multicast trafffic come we hash both group and source address and
+Checking if the client exists in both hashes.
+
+You need iptables >= 1.4.3
+and kernel-source >= 2.6.17 
+tools: socat
+make 
+For testing purpose do the following (need to be root) :
+# sh test.sh 
+Stream video on vlc (www.vlc.org) on 238.234.234.1
+Start extra vlc Try to open the video on open network and entering the streamingaddress.
+You will have to choose UDP in both cases.
+
+Then do the following (after changing the middle to your ip)
+echo "hi" | socat - udp-sendto:192.168.1.4:4444 
+Of course, you will have to change 192.168.1.4 to your own ip.
+
