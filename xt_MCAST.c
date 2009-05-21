@@ -1,7 +1,6 @@
 #define MSRC_SIZE    20		//src->cli_head_nodes
 #define MGRP_SIZE    20		//grp->cli_head_nodes
-#define GRP_EXPIRE   120	//seconds
-#define SRC_EXPIRE   300	//seconds (5-mins)
+#define MGRP_EXPIRE   120	//seconds
 #include "compat_xtables.h"
 #include <linux/skbuff.h>
 #include <linux/module.h>
@@ -17,6 +16,7 @@
 
 #include <linux/netfilter.h>
 #include <linux/netfilter/x_tables.h>
+#include "xt_MCAST.h"
 //you can compare addresses directly without htonl
 	 //if (ipv6_addr_cmp(&iph->saddr, &new_addr) == 0)
 
@@ -32,7 +32,8 @@ struct mtable {
 };
 static struct mtable *msrc_hash;	//client list indexed by hash(src)->cli_ip
 static struct mtable *mgrp_hash;	//client list indexed by hash(gid)->cli_ip
-
+static unsigned int source_size= MSRC_SIZE;
+static unsigned int group_size= MGRP_SIZE;
 static DEFINE_MUTEX(mcast_mutex);
 static DEFINE_SPINLOCK(mcast_lock);
 
@@ -69,9 +70,6 @@ init_new_entry(struct xt_mcast *entry, __be32 ip, uint32_t h,
 	printk("Updating entry\n");
     entry->ip = ip;
     entry->timeout = jiffies + expire * HZ;
-    printk("ip =" NIPQUAD_FMT " expires %u minutes\n",
-	   NIPQUAD(entry->ip),
-	   jiffies_to_msecs(entry->timeout - jiffies) / 1000 * 60);
     hlist_add_head(&entry->node, &t->members[h]);
     spin_unlock_bh(&mcast_lock);
     return NF_ACCEPT;
@@ -79,9 +77,9 @@ init_new_entry(struct xt_mcast *entry, __be32 ip, uint32_t h,
 
 
 
-static inline uint32_t mcast_hash(u32 name)
+static inline uint32_t mcast_hash(u32 name, unsigned int size)
 {
-    return jhash_1word(name, jhash_rnd) & (MSRC_SIZE - 1);
+    return jhash_1word(name, jhash_rnd) & (size - 1);
 }
 static struct hlist_node *lookup(__be32 hkey, __be32 ip, struct mtable *t)
 {
@@ -112,24 +110,26 @@ static unsigned int igmp_report(__be32 cli, __be32 grp)
 {
 
     struct xt_mcast *entry = NULL, *head_entry;	//aka head
-    uint32_t h = mcast_hash(grp);
+    uint32_t h = mcast_hash(grp,group_size);
 
     struct hlist_node *head_node = get_headnode(mgrp_hash, h);
     struct hlist_node *entry_node;
     printk(NIPQUAD_FMT "->" NIPQUAD_FMT "\n", NIPQUAD(grp), NIPQUAD(cli));
     if (head_node == NULL)
-	return init_new_entry(entry, cli, h, mgrp_hash, GRP_EXPIRE);
+	return init_new_entry(entry, cli, h, mgrp_hash, MGRP_EXPIRE);
     //go fish 
 
     entry_node = lookup(h, cli, mgrp_hash);	//here there is grp alrdy but is the client in it.
     if (entry_node == NULL) {
-	return init_new_entry(entry, cli, h, mgrp_hash, GRP_EXPIRE);
+	return init_new_entry(entry, cli, h, mgrp_hash, MGRP_EXPIRE);
     }
     spin_lock_bh(&mcast_lock);
     //good the client is in the grp. 
     head_entry = hlist_entry(head_node, struct xt_mcast, node);
     entry = hlist_entry(entry_node, struct xt_mcast, node);
-    entry->timeout = jiffies + GRP_EXPIRE * HZ;
+    entry->timeout = jiffies + MGRP_EXPIRE * HZ;
+    //we need to also update the same entry in the source list
+
     if (entry->ip == head_entry->ip)
 	goto out;
     //it the head. don't do anything 
@@ -148,7 +148,7 @@ static unsigned int igmp_report(__be32 cli, __be32 grp)
  */
 static unsigned igmp_leave(__be32 cli, __be32 grp)
 {
-    uint32_t h = mcast_hash(grp);
+    uint32_t h = mcast_hash(grp,group_size);
     struct hlist_node *entry_node;
     struct xt_mcast *entry, *head_entry;	//aka head
     struct hlist_node *head_node = get_headnode(mgrp_hash, h);
@@ -184,8 +184,8 @@ static unsigned int mcast_handler4(const struct iphdr *iph)
 {
     __be32 msrc_ip = iph->saddr;
     __be32 mgrp_ip = iph->daddr;
-    uint32_t hs = mcast_hash(msrc_ip);	//h(msrc_ip)->cli_ip       we do cartesian product
-    uint32_t hg = mcast_hash(mgrp_ip);	//h(mgrp_ip)->cli_ip
+    uint32_t hs = mcast_hash(msrc_ip,source_size);	//h(msrc_ip)->cli_ip       we do cartesian product
+    uint32_t hg = mcast_hash(mgrp_ip,group_size);	//h(mgrp_ip)->cli_ip
     struct xt_mcast *msrc2cli, *mgrp2cli;
     struct hlist_node *n, *n2;
     //check if there exists any client(s) that are mapped to msrc_ip
@@ -284,16 +284,17 @@ static inline void delete_table(struct mtable *t, uint32_t nsize)
 static unsigned int unicast_handler(const struct iphdr *iph)
 {
     __be32 mcli_ip = iph->saddr;
-    uint32_t hs = mcast_hash(iph->daddr);
+    uint32_t hs = mcast_hash(iph->daddr,source_size);
     struct hlist_node *mcli_node;
     struct xt_mcast *mcli = NULL;
     mcli_node = lookup(hs, mcli_ip, msrc_hash);
     if (mcli_node == NULL)
-	return init_new_entry(mcli, mcli_ip, hs, msrc_hash, SRC_EXPIRE);
+	return init_new_entry(mcli, mcli_ip, hs, msrc_hash, MGRP_EXPIRE);
 
     spin_lock_bh(&mcast_lock);
     mcli = hlist_entry(mcli_node, struct xt_mcast, node);
-    mcli->timeout = jiffies + SRC_EXPIRE * HZ;
+    //it wouldn't make sense to put expire on the source: we can stamp it though
+    mcli->timeout = jiffies;
     spin_unlock_bh(&mcast_lock);
 
     return NF_ACCEPT;
@@ -304,7 +305,14 @@ static unsigned int mcast_tg4(const struct sk_buff **pskb,
 			      const struct xt_target_param *par)
 {
     const struct sk_buff *skb = *pskb;
+    const struct xt_mcast_target_info *info = par->targinfo;
     const struct iphdr *iph = ip_hdr(skb);
+    if(info) {
+      if(info->msrc_size > MGRP_SIZE)
+     source_size= info->msrc_size;
+      if(info->mgrp_size > MGRP_SIZE)
+     group_size= info->mgrp_size;
+    }
     if (iph == NULL)
 	return NF_ACCEPT;
     if (ipv4_is_multicast(iph->daddr))	//broadcast also mcast so: skb->pkt_type==PACKET_MULTICAST check?? 
@@ -328,22 +336,22 @@ static struct xt_target mcast_tg_reg __read_mostly = {
     .revision = 0,
     .family = NFPROTO_IPV4,
     .target = mcast_tg4,
-    .targetsize = XT_ALIGN(0),
+    .targetsize = XT_ALIGN(sizeof(struct xt_mcast_target_info)),
     .me = THIS_MODULE,
 };
 
 static int __init mcast_tg_init(void)
 {
 
-    mgrp_hash = init_table(MGRP_SIZE);
-    msrc_hash = init_table(MSRC_SIZE);
-
+    mgrp_hash = init_table(group_size);
+    msrc_hash = init_table(source_size);
+	get_random_bytes(&jhash_rnd, sizeof(jhash_rnd));
     return xt_register_target(&mcast_tg_reg);
 }
 static void __exit mcast_tg_exit(void)
 {
-    delete_table(mgrp_hash, MGRP_SIZE);
-    delete_table(msrc_hash, MSRC_SIZE);
+    delete_table(mgrp_hash, group_size);
+    delete_table(msrc_hash, source_size);
     xt_unregister_target(&mcast_tg_reg);
 }
 
