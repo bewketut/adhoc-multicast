@@ -115,6 +115,7 @@ static unsigned int igmp_report(__be32 cli, __be32 grp)
 
     struct hlist_node *head_node = get_headnode(mgrp_hash, h);
     struct hlist_node *entry_node;
+  printk("IGMP REPORT\n");
     printk(NIPQUAD_FMT "->" NIPQUAD_FMT "\n", NIPQUAD(grp), NIPQUAD(cli));
     if (head_node == NULL)
 	return init_new_entry(entry, cli, h, mgrp_hash, MGRP_EXPIRE);
@@ -210,8 +211,7 @@ int igmp_handler(const struct iphdr *iph, const struct sk_buff *skb)
     const struct igmphdr *igmph = igmp_hdr(skb);
     const struct igmpv3_grec *rec3;
     switch (igmph->type) {
-    case IGMP_HOST_MEMBERSHIP_REPORT:
-	//fallthru
+    case IGMP_HOST_MEMBERSHIP_REPORT: 
     case IGMPV2_HOST_MEMBERSHIP_REPORT:
 	return igmp_report(iph->saddr, iph->daddr);
     case IGMPV3_HOST_MEMBERSHIP_REPORT:           //there is special V2 equivalent case we can handle per rfc3376
@@ -228,7 +228,7 @@ int igmp_handler(const struct iphdr *iph, const struct sk_buff *skb)
 	return NF_ACCEPT;
 
     case IGMP_HOST_LEAVE_MESSAGE:
-	return igmp_leave(iph->saddr, iph->daddr);	//from IGMP_V2 to delete a group (ehnancement on Time interval timer) 
+	return igmp_leave(iph->saddr, igmph->group);	//from IGMP_V2 to delete a group (ehnancement on Time interval timer) 
 	/**case IGMPV3_HOST_MEMBERSHIP_REPORT  
      *Note: The routers and hosts are too modern: don't think so.Likely there is one INCAPABLE
      *IGMPV3 is SSM and has already mechanism put in place for filtering 
