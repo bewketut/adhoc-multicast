@@ -57,8 +57,9 @@ init_new_entry(struct xt_mcast *entry, __be32 ip, uint32_t h,
          entry=NULL; //just in case
     spin_lock_bh(&mcast_lock);
     hlist_for_each(pos, &t->members[h]) {
-	entry = hlist_entry(pos, struct xt_mcast, node);
-	if (entry != NULL && time_after(jiffies, entry->timeout)) {	//timeout
+	temp_entry = hlist_entry(pos, struct xt_mcast, node);
+	if (temp_entry != NULL && time_after(jiffies, temp_entry->timeout)) {	//timeout
+           entry= temp_entry;
 	    //the first time this we want to delete all but the first expired
 	    //go until you find the first timeout and delete downwards.
 	    pos = pos->next;	//don't delete pos- just advance it
