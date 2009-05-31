@@ -37,6 +37,11 @@ static unsigned int group_size= MGRP_SIZE;
 static unsigned int source_expire= 2*60*60; //2-hours (has to 
 static DEFINE_MUTEX(mcast_mutex);
 static DEFINE_SPINLOCK(mcast_lock);
+static struct hlist_node *get_headnode(struct mtable *t, uint32_t h)
+{
+    return t->members[h].first;
+}
+
 
 static unsigned int
 init_new_entry(struct xt_mcast *entry, __be32 ip, uint32_t h,
@@ -48,7 +53,7 @@ init_new_entry(struct xt_mcast *entry, __be32 ip, uint32_t h,
 //we want to avoid as many memory alloc calls as possible 
     struct hlist_node *pos, *temp;
     struct xt_mcast *temp_entry;
-    struct hlist_node *ref= get_headnode(t,h);
+    struct hlist_node *ref = get_headnode(t,h);
          entry=NULL; //just in case
     spin_lock_bh(&mcast_lock);
     hlist_for_each(pos, &t->members[h]) {
@@ -102,11 +107,6 @@ static struct hlist_node *lookup(__be32 hkey, __be32 ip, struct mtable *t)
     }
     spin_unlock_bh(&mcast_lock);
     return NULL;
-}
-
-static struct hlist_node *get_headnode(struct mtable *t, uint32_t h)
-{
-    return t->members[h].first;
 }
 
 static unsigned int igmp_report(__be32 cli, __be32 grp)
