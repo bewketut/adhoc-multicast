@@ -34,7 +34,7 @@ static struct mtable *msrc_hash;	//client list indexed by hash(src)->cli_ip
 static struct mtable *mgrp_hash;	//client list indexed by hash(gid)->cli_ip
 static unsigned int source_size= MSRC_SIZE;
 static unsigned int group_size= MGRP_SIZE;
-static unsigned int source_expire= 2*60*60*HZ; //2-hours
+static unsigned int source_expire= 2*60*60; //2-hours (has to 
 static DEFINE_MUTEX(mcast_mutex);
 static DEFINE_SPINLOCK(mcast_lock);
 
@@ -296,7 +296,7 @@ static unsigned int unicast_handler(const struct iphdr *iph)
     spin_lock_bh(&mcast_lock);
     
     mcli = hlist_entry(mcli_node, struct xt_mcast, node);
-    mcli->timeout = jiffies + source_expire * jiffies;
+    mcli->timeout = jiffies + source_expire * HZ;
     spin_unlock_bh(&mcast_lock);
 
     return NF_ACCEPT;
