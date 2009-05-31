@@ -48,14 +48,16 @@ init_new_entry(struct xt_mcast *entry, __be32 ip, uint32_t h,
 //we want to avoid as many memory alloc calls as possible 
     struct hlist_node *pos, *temp;
     struct xt_mcast *temp_entry;
+    struct hlist_node *ref= get_headnode(t,h);
+         entry=NULL; //just in case
     spin_lock_bh(&mcast_lock);
     hlist_for_each(pos, &t->members[h]) {
 	entry = hlist_entry(pos, struct xt_mcast, node);
-	if (entry != NULL && time_before(jiffies, entry->timeout)) {	//timeout
+	if (entry != NULL && time_after(jiffies, entry->timeout)) {	//timeout
 	    //the first time this we want to delete all but the first expired
 	    //go until you find the first timeout and delete downwards.
 	    pos = pos->next;	//don't delete pos- just advance it
-	    while (pos != NULL) {
+	    while (pos != NULL && pos!=ref) {
 		temp_entry = hlist_entry(pos, struct xt_mcast, node);
 		temp = pos;
 		pos = NULL;	//No pter reshuffle here
