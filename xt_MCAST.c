@@ -78,7 +78,7 @@ init_new_entry(struct xt_mcast *entry, __be32 ip, uint32_t h,
 
 
 
-static inline uint32_t mcast_hash(u32 name, unsigned int size)
+static inline uint32_t mcast_hash(__be32 name, unsigned int size)
 {
     return jhash_1word(name, jhash_rnd) & (size - 1);
 }
