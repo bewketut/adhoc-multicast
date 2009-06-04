@@ -27,16 +27,16 @@ struct udphdr;
 #	define skb_transport_header(skb) ((skb)->h.raw)
 static inline void skb_reset_network_header(struct sk_buff *skb)
 {
-	skb->nh.raw = skb->data;
+    skb->nh.raw = skb->data;
 }
 static inline struct tcphdr *tcp_hdr(const struct sk_buff *skb)
 {
-	return (void *)skb_transport_header(skb);
+    return (void *) skb_transport_header(skb);
 }
 static inline struct udphdr *udp_hdr(const struct sk_buff *skb)
 {
-	return (void *)skb_transport_header(skb);
+    return (void *) skb_transport_header(skb);
 }
 #endif
 
-#endif /* COMPAT_SKBUFF_H */
+#endif				/* COMPAT_SKBUFF_H */

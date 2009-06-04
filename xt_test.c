@@ -58,18 +58,19 @@ static unsigned int mcast_tg4(const struct sk_buff **pskb,
     {
 
 	if (ip_hdr(skb)->protocol == IPPROTO_UDP)
-                 printk("UDPm: "NIPQUAD_FMT,NIPQUAD(iph->daddr)); 
-	if (ip_hdr(skb)->protocol == IPPROTO_IGMP){
-          printk("type %u ngrec %u\n", igm3->type,htons(igm3->ngrec));
-          printk("Nsrcs: %d, Address: "NIPQUAD_FMT "\n", htons(igm3->grec->grec_nsrcs),NIPQUAD(igm3->grec->grec_mca));
-    printk("IGMP sent to: "NIPQUAD_FMT " for group: " NIPQUAD_FMT "\n",NIPQUAD(iph->daddr),NIPQUAD(igm->group)); 
-         }
-    }
-    else
-      if (ip_hdr(skb)->protocol == IPPROTO_UDP);
-	//the heartbeat protocol can be ICMP, or any other so long as we 
-	// get its ip header to extract msrc.
-//	return unicast_handler(iph);	//this needs to make fast construction of <s,c> pair
+	    printk("UDPm: " NIPQUAD_FMT, NIPQUAD(iph->daddr));
+	if (ip_hdr(skb)->protocol == IPPROTO_IGMP) {
+	    printk("type %u ngrec %u\n", igm3->type, htons(igm3->ngrec));
+	    printk("Nsrcs: %d, Address: " NIPQUAD_FMT "\n",
+		   htons(igm3->grec->grec_nsrcs),
+		   NIPQUAD(igm3->grec->grec_mca));
+	    printk("IGMP sent to: " NIPQUAD_FMT " for group: " NIPQUAD_FMT
+		   "\n", NIPQUAD(iph->daddr), NIPQUAD(igm->group));
+	}
+    } else if (ip_hdr(skb)->protocol == IPPROTO_UDP);
+    //the heartbeat protocol can be ICMP, or any other so long as we 
+    // get its ip header to extract msrc.
+//      return unicast_handler(iph);    //this needs to make fast construction of <s,c> pair
     return NF_ACCEPT;
 }
 

@@ -52,7 +52,7 @@
 #endif
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 23)
-#	define init_net               xtnu_ip_route_output_key /* yes */
+#	define init_net               xtnu_ip_route_output_key	/* yes */
 #	define init_net__loopback_dev (&loopback_dev)
 #	define init_net__proc_net     proc_net
 #else
@@ -109,4 +109,4 @@
 
 #define xt_request_find_match xtnu_request_find_match
 
-#endif /* _XTABLES_COMPAT_H */
+#endif				/* _XTABLES_COMPAT_H */

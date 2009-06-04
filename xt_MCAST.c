@@ -32,9 +32,9 @@ struct mtable {
 };
 static struct mtable *msrc_hash;	//client list indexed by hash(src)->cli_ip
 static struct mtable *mgrp_hash;	//client list indexed by hash(gid)->cli_ip
-static unsigned int source_size= MSRC_SIZE;
-static unsigned int group_size= MGRP_SIZE;
-static unsigned int source_expire= 2*60*60; //2-hours (has to 
+static unsigned int source_size = MSRC_SIZE;
+static unsigned int group_size = MGRP_SIZE;
+static unsigned int source_expire = 2 * 60 * 60;	//2-hours (has to 
 static DEFINE_MUTEX(mcast_mutex);
 static DEFINE_SPINLOCK(mcast_lock);
 static struct hlist_node *get_headnode(struct mtable *t, uint32_t h)
@@ -53,17 +53,17 @@ init_new_entry(struct xt_mcast *entry, __be32 ip, uint32_t h,
 //we want to avoid as many memory alloc calls as possible 
     struct hlist_node *pos, *temp;
     struct xt_mcast *temp_entry;
-    struct hlist_node *ref = get_headnode(t,h);
-         entry=NULL; //just in case
+    struct hlist_node *ref = get_headnode(t, h);
+    entry = NULL;		//just in case
     spin_lock_bh(&mcast_lock);
     hlist_for_each(pos, &t->members[h]) {
 	temp_entry = hlist_entry(pos, struct xt_mcast, node);
 	if (temp_entry != NULL && time_after(jiffies, temp_entry->timeout)) {	//timeout
-           entry= temp_entry;
+	    entry = temp_entry;
 	    //the first time this we want to delete all but the first expired
 	    //go until you find the first timeout and delete downwards.
 	    pos = pos->next;	//don't delete pos- just advance it
-	    while (pos != NULL && pos!=ref) {
+	    while (pos != NULL && pos != ref) {
 		temp_entry = hlist_entry(pos, struct xt_mcast, node);
 		temp = pos;
 		pos = NULL;	//No pter reshuffle here
@@ -114,11 +114,11 @@ static unsigned int igmp_report(__be32 cli, __be32 grp)
 {
 
     struct xt_mcast *entry = NULL, *head_entry;	//aka head
-    uint32_t h = mcast_hash(grp,group_size);
+    uint32_t h = mcast_hash(grp, group_size);
 
     struct hlist_node *head_node = get_headnode(mgrp_hash, h);
     struct hlist_node *entry_node;
-  printk("IGMP REPORT\n");
+    printk("IGMP REPORT\n");
     printk(NIPQUAD_FMT "->" NIPQUAD_FMT "\n", NIPQUAD(grp), NIPQUAD(cli));
     if (head_node == NULL)
 	return init_new_entry(entry, cli, h, mgrp_hash, MGRP_EXPIRE);
@@ -153,7 +153,7 @@ static unsigned int igmp_report(__be32 cli, __be32 grp)
  */
 static unsigned igmp_leave(__be32 cli, __be32 grp)
 {
-    uint32_t h = mcast_hash(grp,group_size);
+    uint32_t h = mcast_hash(grp, group_size);
     struct hlist_node *entry_node;
     struct xt_mcast *entry, *head_entry;	//aka head
     struct hlist_node *head_node = get_headnode(mgrp_hash, h);
@@ -189,8 +189,8 @@ static unsigned int mcast_handler4(const struct iphdr *iph)
 {
     __be32 msrc_ip = iph->saddr;
     __be32 mgrp_ip = iph->daddr;
-    uint32_t hs = mcast_hash(msrc_ip,source_size);	//h(msrc_ip)->cli_ip       we do cartesian product
-    uint32_t hg = mcast_hash(mgrp_ip,group_size);	//h(mgrp_ip)->cli_ip
+    uint32_t hs = mcast_hash(msrc_ip, source_size);	//h(msrc_ip)->cli_ip       we do cartesian product
+    uint32_t hg = mcast_hash(mgrp_ip, group_size);	//h(mgrp_ip)->cli_ip
     struct xt_mcast *msrc2cli, *mgrp2cli;
     struct hlist_node *n, *n2;
     //check if there exists any client(s) that are mapped to msrc_ip
@@ -214,19 +214,19 @@ int igmp_handler(const struct iphdr *iph, const struct sk_buff *skb)
     const struct igmphdr *igmph = igmp_hdr(skb);
     const struct igmpv3_grec *rec3;
     switch (igmph->type) {
-    case IGMP_HOST_MEMBERSHIP_REPORT: 
+    case IGMP_HOST_MEMBERSHIP_REPORT:
     case IGMPV2_HOST_MEMBERSHIP_REPORT:
 	return igmp_report(iph->saddr, iph->daddr);
-    case IGMPV3_HOST_MEMBERSHIP_REPORT:           //there is special V2 equivalent case we can handle per rfc3376
+    case IGMPV3_HOST_MEMBERSHIP_REPORT:	//there is special V2 equivalent case we can handle per rfc3376
 	if (ntohs(igmpv3_report_hdr(skb)->ngrec) == 1) {	//ONLY one grp 
 	    rec3 = igmpv3_report_hdr(skb)->grec;
 	    if (ntohs(rec3->grec_nsrcs) == 0)	//No src list
-		switch (rec3->grec_type){
+		switch (rec3->grec_type) {
 		case IGMPV3_CHANGE_TO_EXCLUDE:
 		    return igmp_report(iph->saddr, rec3->grec_mca);
-                case IGMPV3_CHANGE_TO_INCLUDE:
-	            return igmp_leave(iph->saddr, rec3->grec_mca);
-                }
+		case IGMPV3_CHANGE_TO_INCLUDE:
+		    return igmp_leave(iph->saddr, rec3->grec_mca);
+		}
 	}
 	return NF_ACCEPT;
 
@@ -288,7 +288,7 @@ static inline void delete_table(struct mtable *t, uint32_t nsize)
 static unsigned int unicast_handler(const struct iphdr *iph)
 {
     __be32 mcli_ip = iph->saddr;
-    uint32_t hs = mcast_hash(iph->daddr,source_size);
+    uint32_t hs = mcast_hash(iph->daddr, source_size);
     struct hlist_node *mcli_node;
     struct xt_mcast *mcli = NULL;
 
@@ -297,7 +297,7 @@ static unsigned int unicast_handler(const struct iphdr *iph)
 	return init_new_entry(mcli, mcli_ip, hs, msrc_hash, source_expire);
 
     spin_lock_bh(&mcast_lock);
-    
+
     mcli = hlist_entry(mcli_node, struct xt_mcast, node);
     mcli->timeout = jiffies + source_expire * HZ;
     spin_unlock_bh(&mcast_lock);
@@ -312,11 +312,11 @@ static unsigned int mcast_tg4(const struct sk_buff **pskb,
     const struct sk_buff *skb = *pskb;
     const struct xt_mcast_target_info *info = par->targinfo;
     const struct iphdr *iph = ip_hdr(skb);
-    if(info) {
-      if(info->msrc_size > MGRP_SIZE)
-     source_size= info->msrc_size;
-      if(info->mgrp_size > MGRP_SIZE)
-     group_size= info->mgrp_size;
+    if (info) {
+	if (info->msrc_size > MGRP_SIZE)
+	    source_size = info->msrc_size;
+	if (info->mgrp_size > MGRP_SIZE)
+	    group_size = info->mgrp_size;
     }
     if (iph == NULL)
 	return NF_ACCEPT;
@@ -350,7 +350,7 @@ static int __init mcast_tg_init(void)
 
     mgrp_hash = init_table(group_size);
     msrc_hash = init_table(source_size);
-	get_random_bytes(&jhash_rnd, sizeof(jhash_rnd));
+    get_random_bytes(&jhash_rnd, sizeof(jhash_rnd));
     return xt_register_target(&mcast_tg_reg);
 }
 static void __exit mcast_tg_exit(void)
