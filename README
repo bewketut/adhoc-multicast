@@ -9,13 +9,15 @@ What it does
 This module provides a filter for incoming multicast traffic by doing the f/g:
 1. Snooping Subscibe (or join) messages and storing the client by its group
 hash
-2. We also snoop mulitcast source address (unicast type). This is the part where one sort of NEEDs to pierce a hole for the multicast (which can be seen in the second last line) source- its unicast address. We store the client by the multicast source hash.
+2. We also snoop mulitcast source address (unicast type). This is the part where one sort of NEEDs 
+to pierce a hole for the multicast (which can be seen in the second last line) source- its unicast address.
+We store the client by the multicast source hash.
 
 3. When multicast trafffic come we hash both group and source address and
 Checking if the client exists in both hashes.
 
 testing (blocking and unblocking multicast traffic)
-=======
+===================================================
 For testing purpose do the following (need to be root) :
 # sh test.sh 
 Start vlc (www.videolan.org) stream video  on 238.234.234.1
