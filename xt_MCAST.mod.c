@@ -37,4 +37,4 @@ __attribute__((section(".modinfo"))) =
 "depends=compat_xtables";
 
 
-MODULE_INFO(srcversion, "5F7E08DC95090ABCFAEE345");
+MODULE_INFO(srcversion, "A3BA6A33815F11F58C753C4");

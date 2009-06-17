@@ -1,3 +1,11 @@
+what you need
+=============
+You need iptables >= 1.4.3
+and kernel-source >= 2.6.17  
+tool: socat, vlc 
+
+What it does
+============
 This module provides a filter for incoming multicast traffic by doing the f/g:
 1. Snooping Subscibe (or join) messages and storing the client by its group
 hash
@@ -6,9 +14,8 @@ hash
 3. When multicast trafffic come we hash both group and source address and
 Checking if the client exists in both hashes.
 
-You need iptables >= 1.4.3
-and kernel-source >= 2.6.17 
-tool: socat, vlc 
+testing (blocking and unblocking multicast traffic)
+=======
 For testing purpose do the following (need to be root) :
 # sh test.sh 
 Start vlc (www.videolan.org) stream video  on 238.234.234.1
