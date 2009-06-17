@@ -22,8 +22,8 @@ Start vlc (www.videolan.org) stream video  on 238.234.234.1
 Start extra vlc. Try to open the video on open network and entering the streamingaddress. It should NOT open.
 You will have to choose UDP in both cases.
 
-Then do the following (after changing the 192.x.x.x to your ip)  
-echo "hi" | socat - udp-sendto:192.168.1.4:4444 
+Then do the following (after changing the 192.x.x.x to your local ip)  
+echo "hi" | socat - udp-sendto:192.x.x.x:4444 
 and it should now open
 
 sim_test
