@@ -19,3 +19,6 @@ Then do the following (after changing the 192.x.x.x to your ip)
 echo "hi" | socat - udp-sendto:192.168.1.4:4444 
 and it should now open
 
+sim_test
+========
+This gives a userland simulator to what the kernel module is trying to do.
