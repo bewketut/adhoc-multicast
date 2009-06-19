@@ -146,7 +146,7 @@ static unsigned int igmp_report(__be32 cli, __be32 grp)
     return NF_ACCEPT;
 }
 
-/* this probably will increase complexity and superflous somehow
+/* this probably will increase complexity and is superflous somehow
  * we can just ignore this and use
  * our clean first and insert mechanism in fact this  removes 
  * temporal locality of our entries 
@@ -232,13 +232,6 @@ int igmp_handler(const struct iphdr *iph, const struct sk_buff *skb)
 
     case IGMP_HOST_LEAVE_MESSAGE:
 	return igmp_leave(iph->saddr, igmph->group);	//from IGMP_V2 to delete a group (ehnancement on Time interval timer) 
-	/**case IGMPV3_HOST_MEMBERSHIP_REPORT  
-     *Note: The routers and hosts are too modern: don't think so.Likely there is one INCAPABLE
-     *IGMPV3 is SSM and has already mechanism put in place for filtering 
-     *But many NICs construct the IGMPv1 & v2 reports types and it is often the case IGMPv3 capable 
-     *router falls back to using those types.k
-      *case IGMP_HOST_MEMBERSHIP_QUERY: return NF_ACCEPT; No information to snoop from this.
-        **/
     default:
 	return NF_ACCEPT;
     }
