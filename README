@@ -3,7 +3,7 @@ what you need
 You need iptables >= 1.4.3
 and kernel-source >= 2.6.17  (can also use ONLY header files -kernel-headers*.rpm/deb in /lib/modules)
 tool: socat, vlc 
-main module is xt_mcast.c (written by the author)
+main module is xt_mcast.c 
 What it does
 ============
 This module provides a filter for incoming multicast traffic by doing the f/g:
