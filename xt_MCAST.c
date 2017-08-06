@@ -306,7 +306,7 @@ static unsigned int mcast_tg4(const struct sk_buff **pskb,
     const struct xt_mcast_target_info *info = par->targinfo;
     const struct iphdr *iph = ip_hdr(skb);
     if (info) {
-	if (info->msrc_size > MGRP_SIZE)
+	if (info->msrc_size > MSRC_SIZE)
 	    source_size = info->msrc_size;
 	if (info->mgrp_size > MGRP_SIZE)
 	    group_size = info->mgrp_size;
