@@ -334,6 +334,7 @@ static struct xt_target mcast_tg_reg __read_mostly = {
     .revision = 0,
     .family = NFPROTO_IPV4,
     .target = mcast_tg4,
+    .targetsize=XT_ALIGN(sizeof(struct xt_mcast_target_info)),
     .me = THIS_MODULE,
 };
 

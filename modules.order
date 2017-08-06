@@ -1,2 +1,2 @@
-kernel//home/bewket/adhoc2/compat_xtables.ko
-kernel//home/bewket/adhoc2/xt_MCAST.ko
+kernel//var/www/serverRoot/wm/dynamic-multicast/compat_xtables.ko
+kernel//var/www/serverRoot/wm/dynamic-multicast/xt_MCAST.ko
