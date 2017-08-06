@@ -1,7 +1,0 @@
-0x439e6ed0	xtnu_ip_route_me_harder	/var/www/serverRoot/wm/dynamic-multicast/compat_xtables	EXPORT_SYMBOL_GPL
-0xffe3552a	xtnu_register_target	/var/www/serverRoot/wm/dynamic-multicast/compat_xtables	EXPORT_SYMBOL_GPL
-0x850f4ac6	xtnu_request_find_match	/var/www/serverRoot/wm/dynamic-multicast/compat_xtables	EXPORT_SYMBOL_GPL
-0x49db048d	xtnu_unregister_target	/var/www/serverRoot/wm/dynamic-multicast/compat_xtables	EXPORT_SYMBOL_GPL
-0x10cb13d8	xtnu_skb_make_writable	/var/www/serverRoot/wm/dynamic-multicast/compat_xtables	EXPORT_SYMBOL_GPL
-0x80174ac6	xtnu_unregister_targets	/var/www/serverRoot/wm/dynamic-multicast/compat_xtables	EXPORT_SYMBOL_GPL
-0x9e375687	xtnu_register_targets	/var/www/serverRoot/wm/dynamic-multicast/compat_xtables	EXPORT_SYMBOL_GPL
