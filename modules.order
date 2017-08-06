@@ -1,2 +1,2 @@
-kernel//var/www/serverRoot/wm/dynamic-multicast/compat_xtables.ko
-kernel//var/www/serverRoot/wm/dynamic-multicast/xt_MCAST.ko
+compat_xtables.ko
+xt_MCAST.ko
