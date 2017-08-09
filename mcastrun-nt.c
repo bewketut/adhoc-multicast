@@ -10,13 +10,13 @@
 
 extern char *command_str(char *c);
 int main(int argc, char **argv){
-if(argc==2 || argc==4 || argc > 5){
+if(argc==2 || argc==4 ){
 printf("%s -c (command) or -f file(write file) -m mcastAddr (Write mode)\n",argv[0]);
-printf("%s -m mcastAddr (Receive mode)\n",argv[0]);
+printf("%s -m mcastAddr (using -235.235.232.213)(Receive mode)\n",argv[0]);
 return 0;
 }
 if(argc==1){
-printf("%s -m mcastAddr (Receive mode)\n",argv[0]);
+printf("%s -m mcastAddr- using 235.235.232.213 (Receive mode)\n",argv[0]);
 printf("%s -c (command) or -f file(write file) -m mcastAddr (Write mode)\n",argv[0]);
 return 0;
 }
@@ -28,8 +28,8 @@ unsigned int ttl,mlen;
 char message[1025];
 FILE *fp;
 struct ip_mreq imr;
-//struct hostent *mcastad=gethostbyname("235.235.232.213");
-struct hostent *mcastad=gethostbyname(argv[argc-1]);
+struct hostent *mcastad=gethostbyname("235.235.232.213");
+//struct hostent *mcastad=gethostbyname(argv[argc-1]);
 memcpy((char *) &mcastaddr.s_addr, mcastad->h_addr_list[0],mcastad->h_length); 
 //mcastaddr.sin_family=AF_INET;
 //mcastaddr.sin_port=htons(3020);
@@ -59,7 +59,6 @@ fclose(fp);
  }
 }
 else {
-
 imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
 imr.imr_interface.s_addr= htonl(INADDR_ANY);
 setsockopt(so, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &imr, sizeof(struct ip_mreq));
