@@ -1,7 +1,7 @@
 #define MSRC_SIZE    20		//src->cli_head_nodes
 #define MGRP_SIZE    20		//grp->cli_head_nodes
 #define MGRP_EXPIRE   120	//seconds
-#include "compat_xtables.h"
+//#include "compat_xtables.h"
 #include <linux/skbuff.h>
 #include <linux/module.h>
 #include <linux/jiffies.h>
