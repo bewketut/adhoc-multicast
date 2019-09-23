@@ -6,8 +6,8 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <netdb.h>
-#define BUF_SIZ 266 
-//#define BUF_SIZ 9092 
+//#define BUF_SIZ 266 
+#define BUF_SIZ 4096 
 #define MCASTP 3020
 extern char *command_str(char *c);
 int main(int argc, char **argv){
@@ -16,13 +16,12 @@ struct in_addr mcastaddr;
 int so,sc,i,sock;
 unsigned int ttl,mlen;
 //const char *str1="fdakfdaj";
-char message[1025];
+char message[BUF_SIZ];
 FILE *fp;
 struct ip_mreq imr;
-char str2s[BUF_SIZ];
 //for (i=0; i<argc; i++) printf("%s", argv[2]);
 if(argc!=1 && argc < 3 ){
-printf("%s -x (command) or -f file(write file) -m mcastAddr (Write mode)\n",argv[0]);
+printf("%s -x (command) or -F file(write file -f on stdout) -m mcastAddr (Write mode)\n",argv[0]);
 printf("%s -m mcastAddr (using -235.235.232.213)(Receive mode)\n",argv[0]);
 return 0;
 }
@@ -60,26 +59,41 @@ if(sc==-1) printf("Unable to send, do group exist\n");
 //printf("%s%d\n",command, sc);
  }
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f")){
-fp = fopen(argv[2],"r");
+fp = fopen(argv[2],"rb");
 char *filename= argv[1]; 
 filename= strcat(filename, argv[2]);
 sc=sendto(so,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)); 
 if(sc==-1) printf("Unable to send, do group exist\n");
 fseek(fp , 0 , SEEK_END); long size; 
 size = ftell(fp); rewind(fp); 
-char *buffer = (char*) malloc(sizeof(char)*size); 
-char buffer2[size];
+long ntimes= (size/BUF_SIZ);
+int rem = size%BUF_SIZ;
+char *buffer = (char *) malloc(sizeof(char *)*size); 
+char buffer2[BUF_SIZ];
 int j=0;
 int n,numr; 
-numr=fread(buffer,1,size,fp);
-strcpy(buffer2,buffer);
-    n = 0;
-n=sendto(so,buffer2+n,numr-n, 0, (struct sockaddr *) &mcast, sizeof(mcast)); 
 
-//while((n=sendto(so,buffer2,numr-n, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0);  //for video maybe
- sc=sendto(so,"EOF",strlen("EOF")+1, 0, (struct sockaddr *) &mcast, sizeof(mcast));
-if(sc==-1) printf("Unable to send, do group exist\n");
+n = 0;
+
+numr=fread(buffer,sizeof(char),size,fp);
 fclose(fp);
+for(i=0;i< ntimes; i++){
+//strncpy(buffer2,buffer+i*BUF_SIZ,BUF_SIZ);
+while((n=sendto(so,buffer+i*BUF_SIZ,BUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
+}
+
+unsigned char *remn=(unsigned char *)malloc(sizeof(unsigned char)*5); remn[3]= rem;
+remn[0]='E'; remn[1]='O'; remn[2]='F'; remn[4]='\0'; 
+printf("remchar:%d",remn[3]*8);
+ sc=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast));
+
+while((n=sendto(so,buffer+ i*BUF_SIZ,rem, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
+/*
+ sc=sendto(so,"EOF",strlen("EOF")+1, 0, (struct sockaddr *) &mcast, sizeof(mcast));*/
+if(sc==-1) printf("Unable to send, do group exist\n");
+//if(sc==-1) printf("Unable to send, do group exist\n");
+//while((n=sendto(so,buffer+n,numr-n, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=-1);  //for video maybe
+
  }
 }
 else {
@@ -93,24 +107,29 @@ imr.imr_interface.s_addr= htonl(INADDR_ANY);
 i=setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &imr, sizeof(struct ip_mreq));
 if(i < 0) {printf("Cannot join Multicast Group\n"); exit(0);}
 FILE *fn=NULL;
+int nextlen=BUF_SIZ;
  while(1){
 mlen=sizeof(src);
-i=recvfrom(sock, message, 1000, 0, (struct sockaddr *) &src , &mlen);
-//else i=recvfrom(sock, buf, bufsize, 0, (struct sockaddr *) &src , &mlen);
-//char *cmds=(char *) malloc (100*sizeof(char *)); 
-//cmds=strcpy(cmds, message);
+i=recvfrom(sock, message, nextlen, 0, (struct sockaddr *) &src , &mlen);
 
 if(i==-1) continue;
-//printf("%s\n",command_str(cmds));
+
+
 if(!fn && strstr(message,"-x")){
 printf("%s\n", &message[2]);
 system(command_str(message));
 }
-else if(!fn && strstr(message,"-F")) {
- fn= fopen(command_str(message),"w");continue;}
-else if(strcmp(message,"EOF") && fn) fputs(message,fn);
-else if(fn) fclose(fn);
-else fputs(message,stdout);
+else if(!fn && strstr(message,"-F"))  { fn= fopen(command_str(message),"w");
+printf("opening file %s for writing\n",message);
+}
+else if(strstr(message,"EOF")!=NULL) nextlen=(unsigned char)message[3]*8;
+else if(nextlen!=BUF_SIZ && fn){
+fwrite(message,1,nextlen,fn);
+printf("%s\n","Finishing writing file");
+ fclose(fn); fn=NULL;}
+else if(fn)
+fwrite(message,1,nextlen,fn);
+else fwrite(message,1,nextlen, stdout);
 
 }//if(getchar()==EOF) 
 //return setsockopt(so,IPPRTO_IP, IP_DROP_MEMBERSHIP, &imr, sizeof(struct ip_mreq));
@@ -125,7 +144,15 @@ c[i-2]=c[i];
 c[i-2]='\0';
 return c;
 }
+/*
+char *int2str(int k)
+{ int i;
+  char str[10];
+      for(i=1; i<k; i*=10);
 
+       k%i 
+}
+*/
 /*
 static struct option long_opt[] = {
     {"cmd", 1, 0, 'c'},
