@@ -84,7 +84,7 @@ while((n=sendto(so,buffer+i*BUF_SIZ,BUF_SIZ, 0, (struct sockaddr *) &mcast, size
 
 unsigned char *remn=(unsigned char *)malloc(sizeof(unsigned char)*5); remn[3]= rem;
 remn[0]='E'; remn[1]='O'; remn[2]='F'; remn[4]='\0'; 
-printf("remchar:%d",remn[3]*8);
+//printf("remchar:%d",remn[3]*8);
  sc=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 
 while((n=sendto(so,buffer+ i*BUF_SIZ,rem, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
