@@ -21,7 +21,7 @@ FILE *fp;
 struct ip_mreq imr;
 //for (i=0; i<argc; i++) printf("%s", argv[2]);
 if(argc!=1 && argc < 3 ){
-printf("%s -x (command) or -F file(write file -f on stdout) -m mcastAddr (Write mode)\n",argv[0]);
+printf("%s -c (command) or -F file(write file -f on stdout) -m mcastAddr (Write mode)\n",argv[0]);
 printf("%s -m mcastAddr (using -235.235.232.213)(Receive mode)\n",argv[0]);
 return 0;
 }
@@ -49,7 +49,7 @@ src.sin_addr.s_addr=htonl(INADDR_ANY);
 src.sin_port=htons(0);
 bind(so, (struct sockaddr *) &src, sizeof(src));
 setsockopt(so,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));
-if(!strcmp(argv[1],"-x")){
+if(!strcmp(argv[1],"-c")){
 char *command=argv[1];
 for(i=2;i<argc && strcmp(argv[i],"-m"); i++)
 command= strcat(strcat(command,argv[i])," "); 
@@ -115,7 +115,7 @@ i=recvfrom(sock, message, nextlen, 0, (struct sockaddr *) &src , &mlen);
 if(i==-1) continue;
 
 
-if(!fn && strstr(message,"-x")){
+if(!fn && strstr(message,"-c")){
 printf("%s\n", &message[2]);
 system(command_str(message));
 }
