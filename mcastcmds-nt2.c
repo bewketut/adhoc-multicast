@@ -10,6 +10,12 @@
 #define BUF_SIZ 4096 
 #define MCASTP 3020
 extern char *command_str(char *c);
+/*
+struct srcmutexfiles {
+		unsigned char *fhash;
+		FILE *fname;
+}; typedef struct srcmutexfiles mcastsrcfile;
+*/
 int main(int argc, char **argv){
 struct sockaddr_in src, temp,mcast;
 struct in_addr mcastaddr;
@@ -61,6 +67,7 @@ if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") ||
  !strcmp(argv[1],"-cf")){
 if(argc>3) {printf("Put a file name ONLY\n"); return 0;}
 fp = fopen(argv[2],"rb");
+
 if(!strcmp(argv[1],"-cf")){
    message[0]='-';message[1]='c'; message[2]='f';
    while(fgets(message+3,50,fp))
@@ -68,10 +75,11 @@ if(!strcmp(argv[1],"-cf")){
        while((n=sendto(so,message,53, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
 }
 else{
-char *filename= argv[1]; //initialization
-filename= strcat(filename, argv[2]);
-sc=sendto(so,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)); 
-if(sc==-1) printf("Unable to send, do group exist\n");
+char filehash3= (char) rand();
+char filehash= filehash3;
+char *filename= (char *) malloc(sizeof(char)*300);
+filename[0]=filehash;filename[2]='\0';
+filename=strcat(strcat(filename,argv[1]),argv[2]);//initialization 
 fseek(fp , 0 , SEEK_END); long size; 
 size = ftell(fp); rewind(fp); 
 long ntimes= (size/BUF_SIZ);
@@ -80,24 +88,27 @@ char *buffer = (char *) malloc(sizeof(char *)*size);
 //char buffer2[BUF_SIZ];
 //int j=0;
 int numr; 
-
+//char *filestart=(char *)malloc(sizeof(char)*(ntimes+1));
+//for(i=0;i<ntimes+1;i++)filestart[i]=filehash3; 
 n = 0;
-
+sc=sendto(so,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)); 
+if(sc==-1) printf("Unable to send, do group exist\n");
 numr=fread(buffer,sizeof(char),size,fp);
 fclose(fp);
+
 for(i=0;i< ntimes; i++){
 //strncpy(buffer2,buffer+i*BUF_SIZ,BUF_SIZ);
 while((n=sendto(so,buffer+i*BUF_SIZ,BUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 }
 
-unsigned char *remn=(unsigned char *)malloc(sizeof(unsigned char)*5); remn[3]= rem;
-remn[0]='E'; remn[1]='O'; remn[2]='F'; remn[4]='\0'; 
-//printf("remchar:%d",remn[3]*8);
+ char *remn=(char *)malloc(sizeof(char)*6); remn[4]=(unsigned char) rem;
+remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='F'; remn[5]='\0'; 
+printf("remchar:%d",(unsigned char)remn[4]*8);
  sc=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast));
-
 while((n=sendto(so,buffer+ i*BUF_SIZ,rem, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
-/*
- sc=sendto(so,"EOF",strlen("EOF")+1, 0, (struct sockaddr *) &mcast, sizeof(mcast));*/
+
+ 
+ sc=sendto(so,"EOF",strlen("EOF")+1, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 if(sc==-1) printf("Unable to send, do group exist\n");
 //if(sc==-1) printf("Unable to send, do group exist\n");
 //while((n=sendto(so,buffer+n,numr-n, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=-1);  //for video maybe
@@ -114,16 +125,19 @@ imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
 imr.imr_interface.s_addr= htonl(INADDR_ANY);
 i=setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &imr, sizeof(struct ip_mreq));
 if(i < 0) {printf("Cannot join Multicast Group\n"); exit(0);}
-FILE *fn=NULL;
-int nextlen=BUF_SIZ;
+//mcastsrcfile *mcastfiles= (mcastsrcfile *) malloc(sizeof(mcastsrcfile)*250); //250 mutex file
+FILE *fn[250];
+//mcastfiles[0]->fhash='0';
+//mcastfiles[0]->fname=fopen("1.txt","r");
+int index=0;
+int nextlen[250]; for(i=0;i<250;i++)nextlen[i]=BUF_SIZ;
  while(1){
 mlen=sizeof(src);
-i=recvfrom(sock, message, nextlen, 0, (struct sockaddr *) &src , &mlen);
-
+i=recvfrom(sock, message, nextlen[index]+1, 0, (struct sockaddr *) &src , &mlen);
 if(i==-1) continue;
-
-
-if(!fn && strstr(message,"-c")){
+//printf("nextlen[index]:%d,index:%d\n",nextlen[index],index);
+//printf("%s\n",message);
+if(!fn[index] && strstr(message,"-c")){
 if(strstr(message,"-cf")){
 printf("%s\n", &message[3]);
 system(&message[3]);
@@ -133,17 +147,23 @@ printf("%s\n", &message[2]);
 system(&message[2]);
 }
 }
-else if(!fn && strstr(message,"-F"))  { fn= fopen(command_str(message),"w");
-printf("opening file %s for writing\n",message);
+else if(!fn[index] && strstr(message,"-F"))  { 
+ index=((unsigned int)message[0])%250;
+fn[index]= fopen(message+3,"w");
+printf("opening file %s for writing\n",message+3);
 }
-else if(strstr(message,"EOF")!=NULL) nextlen=(unsigned char)message[3]*8;
-else if(nextlen!=BUF_SIZ && fn){
-fwrite(message,1,nextlen,fn);
+else if(strstr(message,"EOF")!=NULL){
+ index=((unsigned int)message[0])%250;
+ nextlen[index]=((unsigned char)message[4])*8 ;
+}
+else if((nextlen[index]!=BUF_SIZ) && fn[index]){
+fwrite(message,1,nextlen[index],fn[index]);
 printf("%s\n","Finishing writing file");
- fclose(fn); fn=NULL;}
-else if(fn)
-fwrite(message,1,nextlen,fn);
-else fwrite(message,1,nextlen, stdout);
+ fclose(fn[index]); fn[index]=NULL;}
+else if(fn[index]){
+fwrite(message,1,nextlen[index],fn[index]);
+}
+else fwrite(message,1,nextlen[index], stdout);
 
 }//if(getchar()==EOF) 
 //return setsockopt(so,IPPRTO_IP, IP_DROP_MEMBERSHIP, &imr, sizeof(struct ip_mreq));
