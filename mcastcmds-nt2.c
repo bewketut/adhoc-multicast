@@ -13,7 +13,7 @@ extern char *command_str(char *c);
 int main(int argc, char **argv){
 struct sockaddr_in src, temp,mcast;
 struct in_addr mcastaddr;
-int so,sc,i,sock;
+int so,sc,i,sock,n;
 unsigned int ttl,mlen;
 //const char *str1="fdakfdaj";
 char message[BUF_SIZ];
@@ -21,7 +21,7 @@ FILE *fp;
 struct ip_mreq imr;
 //for (i=0; i<argc; i++) printf("%s", argv[2]);
 if(argc!=1 && argc < 3 ){
-printf("%s -c (command) or -F file(write file -f on stdout) -m mcastAddr (Write mode)\n",argv[0]);
+printf("%s -c[f] command [command file]  or -F(f) file(write file -f on stdout) -m mcastAddr (Write mode)\n",argv[0]);
 printf("%s -m mcastAddr (using -235.235.232.213)(Receive mode)\n",argv[0]);
 return 0;
 }
@@ -50,17 +50,25 @@ src.sin_port=htons(0);
 bind(so, (struct sockaddr *) &src, sizeof(src));
 setsockopt(so,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));
 if(!strcmp(argv[1],"-c")){
-char *command=argv[1];
-for(i=2;i<argc && strcmp(argv[i],"-m"); i++)
+char *command=argv[1]; 
+for(i=2;i<argc && strcmp(argv[i],"-m"); i++) 
 command= strcat(strcat(command,argv[i])," "); 
-int slen=strlen(command)+1;
- sc= sendto(so,command, slen, 0, (struct sockaddr *) &mcast, sizeof(mcast));
+ sc= sendto(so,command, strlen(command)+1, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 if(sc==-1) printf("Unable to send, do group exist\n");
 //printf("%s%d\n",command, sc);
  }
-if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f")){
+if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
+ !strcmp(argv[1],"-cf")){
+if(argc>3) {printf("Put a file name ONLY\n"); return 0;}
 fp = fopen(argv[2],"rb");
-char *filename= argv[1]; 
+if(!strcmp(argv[1],"-cf")){
+   message[0]='-';message[1]='c'; message[2]='f';
+   while(fgets(message+3,50,fp))
+       //sc=sendto(so,message,53, 0, (struct sockaddr *) &mcast, sizeof(mcast));
+       while((n=sendto(so,message,53, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
+}
+else{
+char *filename= argv[1]; //initialization
 filename= strcat(filename, argv[2]);
 sc=sendto(so,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)); 
 if(sc==-1) printf("Unable to send, do group exist\n");
@@ -69,9 +77,9 @@ size = ftell(fp); rewind(fp);
 long ntimes= (size/BUF_SIZ);
 int rem = size%BUF_SIZ;
 char *buffer = (char *) malloc(sizeof(char *)*size); 
-char buffer2[BUF_SIZ];
-int j=0;
-int n,numr; 
+//char buffer2[BUF_SIZ];
+//int j=0;
+int numr; 
 
 n = 0;
 
@@ -93,7 +101,7 @@ while((n=sendto(so,buffer+ i*BUF_SIZ,rem, 0, (struct sockaddr *) &mcast, sizeof(
 if(sc==-1) printf("Unable to send, do group exist\n");
 //if(sc==-1) printf("Unable to send, do group exist\n");
 //while((n=sendto(so,buffer+n,numr-n, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=-1);  //for video maybe
-
+}
  }
 }
 else {
@@ -116,8 +124,14 @@ if(i==-1) continue;
 
 
 if(!fn && strstr(message,"-c")){
+if(strstr(message,"-cf")){
+printf("%s\n", &message[3]);
+system(&message[3]);
+}
+else {
 printf("%s\n", &message[2]);
-system(command_str(message));
+system(&message[2]);
+}
 }
 else if(!fn && strstr(message,"-F"))  { fn= fopen(command_str(message),"w");
 printf("opening file %s for writing\n",message);
