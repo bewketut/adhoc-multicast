@@ -97,17 +97,16 @@ numr=fread(buffer,sizeof(char),size,fp);
 fclose(fp);
 
 for(i=0;i< ntimes; i++){
-buffer[i*BUF_SIZ]=buffer[i*BUF_SIZ]+filehash3;
+buffer[i*BUF_SIZ]=buffer[i*BUF_SIZ]- filehash3; 
 while((n=sendto(so,buffer+i*BUF_SIZ,BUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 }
 
  char *remn=(char *)malloc(sizeof(char)*6); remn[4]=(unsigned char) rem;
 remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='F'; remn[5]='\0'; 
-printf("remchar:%d",(unsigned char)remn[4]*8);
+//printf("remchar:%d",(unsigned char)remn[4]*8);
  sc=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast));
-//printf("buffer%d:%c\t",i*BUF_SIZ,buffer[i*BUF_SIZ]);
+buffer[i*BUF_SIZ]=buffer[i*BUF_SIZ]-filehash3;
 
-buffer[i*BUF_SIZ]=buffer[i*BUF_SIZ]+filehash3;
 while((n=sendto(so,buffer+i*BUF_SIZ,rem, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 
  
@@ -165,12 +164,12 @@ fhash=(unsigned char)message[0];
  nextlen[index]=((unsigned char)message[4])*8 ;
 }
 else if((nextlen[index]!=BUF_SIZ) && fn[index]){
-message[0]=message[0]-fhash;
+message[0]=message[0]+fhash;
 fwrite(message,1,nextlen[index],fn[index]);
 printf("%s\n","Finishing writing file");
  fclose(fn[index]); fn[index]=NULL;}
 else if(fn[index]){
-message[0]=message[0]-fhash;
+message[0]=message[0]+fhash;
 fwrite(message,1,nextlen[index],fn[index]);
 }
 else fwrite(message,1,nextlen[index], stdout);
