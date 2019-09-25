@@ -75,8 +75,8 @@ if(!strcmp(argv[1],"-cf")){
        while((n=sendto(so,message,53, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
 }
 else{
-char filehash3= (char) rand();
-char filehash= filehash3;
+unsigned char filehash3= (unsigned char) rand();
+unsigned char filehash= filehash3;
 char *filename= (char *) malloc(sizeof(char)*300);
 filename[0]=filehash;filename[2]='\0';
 filename=strcat(strcat(filename,argv[1]),argv[2]);//initialization 
@@ -85,7 +85,7 @@ size = ftell(fp); rewind(fp);
 long ntimes= (size/BUF_SIZ);
 int rem = size%BUF_SIZ;
 char *buffer = (char *) malloc(sizeof(char *)*size); 
-//char buffer2[BUF_SIZ];
+//char *buffer2=(char *)malloc(sizeof(char *)*2); buffer2[0]=filehash3;
 //int j=0;
 int numr; 
 //char *filestart=(char *)malloc(sizeof(char)*(ntimes+1));
@@ -97,7 +97,7 @@ numr=fread(buffer,sizeof(char),size,fp);
 fclose(fp);
 
 for(i=0;i< ntimes; i++){
-//strncpy(buffer2,buffer+i*BUF_SIZ,BUF_SIZ);
+buffer[i*BUF_SIZ]=buffer[i*BUF_SIZ]+filehash3;
 while((n=sendto(so,buffer+i*BUF_SIZ,BUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 }
 
@@ -105,7 +105,10 @@ while((n=sendto(so,buffer+i*BUF_SIZ,BUF_SIZ, 0, (struct sockaddr *) &mcast, size
 remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='F'; remn[5]='\0'; 
 printf("remchar:%d",(unsigned char)remn[4]*8);
  sc=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast));
-while((n=sendto(so,buffer+ i*BUF_SIZ,rem, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
+//printf("buffer%d:%c\t",i*BUF_SIZ,buffer[i*BUF_SIZ]);
+
+buffer[i*BUF_SIZ]=buffer[i*BUF_SIZ]+filehash3;
+while((n=sendto(so,buffer+i*BUF_SIZ,rem, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 
  
  sc=sendto(so,"EOF",strlen("EOF")+1, 0, (struct sockaddr *) &mcast, sizeof(mcast));
@@ -129,7 +132,9 @@ if(i < 0) {printf("Cannot join Multicast Group\n"); exit(0);}
 FILE *fn[250];
 //mcastfiles[0]->fhash='0';
 //mcastfiles[0]->fname=fopen("1.txt","r");
+unsigned char fhash=0;
 int index=0;
+unsigned char rem2=-1;
 int nextlen[250]; for(i=0;i<250;i++)nextlen[i]=BUF_SIZ;
  while(1){
 mlen=sizeof(src);
@@ -137,6 +142,7 @@ i=recvfrom(sock, message, nextlen[index]+1, 0, (struct sockaddr *) &src , &mlen)
 if(i==-1) continue;
 //printf("nextlen[index]:%d,index:%d\n",nextlen[index],index);
 //printf("%s\n",message);
+
 if(!fn[index] && strstr(message,"-c")){
 if(strstr(message,"-cf")){
 printf("%s\n", &message[3]);
@@ -148,19 +154,23 @@ system(&message[2]);
 }
 }
 else if(!fn[index] && strstr(message,"-F"))  { 
- index=((unsigned int)message[0])%250;
+fhash=(unsigned char)message[0];
+ index=fhash%250;
 fn[index]= fopen(message+3,"w");
 printf("opening file %s for writing\n",message+3);
 }
 else if(strstr(message,"EOF")!=NULL){
- index=((unsigned int)message[0])%250;
+fhash=(unsigned char)message[0];
+ index=fhash%250;
  nextlen[index]=((unsigned char)message[4])*8 ;
 }
 else if((nextlen[index]!=BUF_SIZ) && fn[index]){
+message[0]=message[0]-fhash;
 fwrite(message,1,nextlen[index],fn[index]);
 printf("%s\n","Finishing writing file");
  fclose(fn[index]); fn[index]=NULL;}
 else if(fn[index]){
+message[0]=message[0]-fhash;
 fwrite(message,1,nextlen[index],fn[index]);
 }
 else fwrite(message,1,nextlen[index], stdout);
