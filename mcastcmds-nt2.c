@@ -23,8 +23,10 @@ int so,sc,i,sock,n;
 unsigned int ttl,mlen;
 //const char *str1="fdakfdaj";
 char message[BUF_SIZ];
+unsigned char c,d;
 FILE *fp;
 struct ip_mreq imr;
+unsigned char filehash3= (unsigned char) rand();
 //for (i=0; i<argc; i++) printf("%s", argv[2]);
 if(argc!=1 && argc < 3 ){
 printf("%s -c[f] command [command file]  or -F(f) file(write file -f on stdout) -m mcastAddr (Write mode)\n",argv[0]);
@@ -75,10 +77,9 @@ if(!strcmp(argv[1],"-cf")){
        while((n=sendto(so,message,53, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
 }
 else{
-unsigned char filehash3= (unsigned char) rand();
 unsigned char filehash= filehash3;
 char *filename= (char *) malloc(sizeof(char)*300);
-filename[0]=filehash;filename[2]='\0';
+filename[0]=filehash; filename[2]='\0';
 filename=strcat(strcat(filename,argv[1]),argv[2]);//initialization 
 fseek(fp , 0 , SEEK_END); long size; 
 size = ftell(fp); rewind(fp); 
@@ -88,16 +89,17 @@ char *buffer = (char *) malloc(sizeof(char *)*size);
 //char *buffer2=(char *)malloc(sizeof(char *)*2); buffer2[0]=filehash3;
 //int j=0;
 int numr; 
-//char *filestart=(char *)malloc(sizeof(char)*(ntimes+1));
-//for(i=0;i<ntimes+1;i++)filestart[i]=filehash3; 
-n = 0;
 sc=sendto(so,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)); 
 if(sc==-1) printf("Unable to send, do group exist\n");
 numr=fread(buffer,sizeof(char),size,fp);
 fclose(fp);
 
 for(i=0;i< ntimes; i++){
-buffer[i*BUF_SIZ]=buffer[i*BUF_SIZ]- filehash3; 
+ c=buffer[i*BUF_SIZ];
+ d= buffer[i*BUF_SIZ+1];
+                                   /*check subtraction & add to get filehash3*/
+buffer[i*BUF_SIZ+2]=buffer[i*BUF_SIZ+2]+d-c +filehash3;
+n = 0;
 while((n=sendto(so,buffer+i*BUF_SIZ,BUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 }
 
@@ -105,7 +107,14 @@ while((n=sendto(so,buffer+i*BUF_SIZ,BUF_SIZ, 0, (struct sockaddr *) &mcast, size
 remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='F'; remn[5]='\0'; 
 //printf("remchar:%d",(unsigned char)remn[4]*8);
  sc=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast));
-buffer[i*BUF_SIZ]=buffer[i*BUF_SIZ]-filehash3;
+ c=buffer[i*BUF_SIZ];
+ d= buffer[i*BUF_SIZ+1];
+buffer[i*BUF_SIZ+2]=buffer[i*BUF_SIZ+2]+ d-c +filehash3;
+//1. add 
+// buf1+buf0= 2d -2* filehash3 ;2(d-filehash3)
+// 2.buf0-buf1= 2c-3*filehash;
+// filehash3= buf1-buf0/2=d; buf0+buf1/2= c-filehash3
+//
 
 while((n=sendto(so,buffer+i*BUF_SIZ,rem, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 
@@ -133,6 +142,8 @@ FILE *fn[250];
 //mcastfiles[0]->fname=fopen("1.txt","r");
 unsigned char fhash=0;
 int index=0;
+unsigned char fsub,ssub;
+//char filehashes[250];
 unsigned char rem2=-1;
 int nextlen[250]; for(i=0;i<250;i++)nextlen[i]=BUF_SIZ;
  while(1){
@@ -140,8 +151,8 @@ mlen=sizeof(src);
 i=recvfrom(sock, message, nextlen[index]+1, 0, (struct sockaddr *) &src , &mlen);
 if(i==-1) continue;
 //printf("nextlen[index]:%d,index:%d\n",nextlen[index],index);
-//printf("%s\n",message);
-
+//printf("%c %c %c\n",message[0],message[1],message[3]-fhash);
+//printf("%s\n", message);
 if(!fn[index] && strstr(message,"-c")){
 if(strstr(message,"-cf")){
 printf("%s\n", &message[3]);
@@ -152,7 +163,7 @@ printf("%s\n", &message[2]);
 system(&message[2]);
 }
 }
-else if(!fn[index] && strstr(message,"-F"))  { 
+else if(!fn[index] && strstr(message,"-F")){ 
 fhash=(unsigned char)message[0];
  index=fhash%250;
 fn[index]= fopen(message+3,"w");
@@ -164,14 +175,29 @@ fhash=(unsigned char)message[0];
  nextlen[index]=((unsigned char)message[4])*8 ;
 }
 else if((nextlen[index]!=BUF_SIZ) && fn[index]){
-message[0]=message[0]+fhash;
+fsub= message[1]-message[0];
+// ssub= message[3]-message[1]-fhash;
+ssub= message[2]-message[1]+message[0];
+message[2]= message[2]-message[1]+message[0]-fhash;
+ssub-=message[2];
+if(ssub==fhash) {
 fwrite(message,1,nextlen[index],fn[index]);
-printf("%s\n","Finishing writing file");
  fclose(fn[index]); fn[index]=NULL;}
+printf("%s\n","Finishing writing file");}
+
+
 else if(fn[index]){
-message[0]=message[0]+fhash;
+//message[0]=message[0]+fhash;
+fsub= message[1]-message[0];
+// ssub= message[3]-message[1]-fhash;
+ssub= message[2]-message[1]+message[0];
+message[2]= message[2]-message[1]+message[0]-fhash;
+ssub-=message[2];
+//printf("fsub:%c message[0]:%c %c\n",message[0],message[1],message[3]-fhash);
+if(ssub==fhash) 
 fwrite(message,1,nextlen[index],fn[index]);
-}
+ }
+
 else fwrite(message,1,nextlen[index], stdout);
 
 }//if(getchar()==EOF) 
