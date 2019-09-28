@@ -82,8 +82,9 @@ unsigned char filehash3= fileround%90;
 
 unsigned char filehash= filehash3;
 char *filename= (char *) malloc(sizeof(char)*300);
-filename[0]=filehash; filename[2]='\0';
-filename=strcat(strcat(filename,argv[1]),argv[2]);//initialization 
+if(!strcmp(argv[1],"-F")) { filename[1]='S'; filename[2]='0'; filename[3]='F';filename[4]='!';}
+filename[0]=filehash; filename[5]='\0';
+filename=strcat(filename,argv[2]);//initialization 
 fseek(fp , 0 , SEEK_END); long size; 
 size = ftell(fp); rewind(fp); 
 long ntimes= (size/BUF_SIZ);
@@ -96,7 +97,7 @@ sc=sendto(so,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast, sizeof(
 if(sc==-1) printf("Unable to send, do group exist\n");
 
 for(i=0;i< ntimes;i++){
-numr=fread(buffer,sizeof(char),size,fp);
+while((numr=fread(buffer,sizeof(char),size,fp))!=0);
  c=buffer[i*BUF_SIZ];
  d= buffer[i*BUF_SIZ+1];
 buffer[i*BUF_SIZ]=buffer[i*BUF_SIZ] - filehash3;
@@ -104,16 +105,18 @@ buffer[i*BUF_SIZ+2]=buffer[i*BUF_SIZ+2]+d-c +filehash3;
 while((n=sendto(so,buffer+i*BUF_SIZ,BUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 }
 
-fclose(fp);
  char *remn=(char *)malloc(sizeof(char)*6); remn[4]=(unsigned char) rem;
 remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='L'; remn[5]='\0'; 
 //printf("remchar:%d",(unsigned char)remn[4]*8);
+while((numr=fread(buffer,sizeof(char),size,fp))!=0);
+//numr=fread(buffer,sizeof(char),size,fp);
  sc=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast));
  c=buffer[i*BUF_SIZ];
  d= buffer[i*BUF_SIZ+1];
 buffer[i*BUF_SIZ]=buffer[i*BUF_SIZ] - filehash3;
 buffer[i*BUF_SIZ+2]=buffer[i*BUF_SIZ+2]+d-c +filehash3;
 
+fclose(fp);
 while((n=sendto(so,buffer+i*BUF_SIZ,rem, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 
 remn[3]='F'; 
@@ -138,8 +141,8 @@ if(i < 0) {printf("Cannot join Multicast Group\n"); exit(0);}
 FILE *fn[90];
 //mcastfiles[0]->fhash='0';
 //mcastfiles[0]->fname=fopen("1.txt","r");
-unsigned char fhash=0;
-int index=0,diff=-1;
+unsigned char fhash=0,prevfhash;
+int index=0,previndex, diff=-1;
  char fsub,ssub;
 unsigned char rem2=-1;
 int nextlen[90]; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
@@ -157,11 +160,14 @@ printf("%s\n", &message[2]);
 system(&message[2]);
 }
 }
-else if(!fn[index] && strstr(message,"-F")){ 
+else if(strstr(message,"S0F!")){ 
+previndex= index;
+prevfhash= fhash;
 fhash=(unsigned char)message[0];
- index=fhash%90;
-fn[index]= fopen(message+3,"w");
-printf("opening file %s for writing\n",message+3);
+index=fhash%90;
+if(fhash<90 && !fn[index])
+fn[index]= fopen(message+5,"w");
+printf("opening file %s for writing\n",message+5);
 }
 else if(fn[index]&& strstr(message,"EOL")!=NULL){
 fhash=(unsigned char)message[0];
@@ -171,6 +177,8 @@ fhash=(unsigned char)message[0];
 else if(strstr(message,"EOF")!=NULL){
 fhash= (unsigned char)message[0];
 fclose(fn[fhash%90]); fn[fhash%90]=NULL;
+index=previndex;
+fhash= prevfhash;
 printf("%s\n","Finished writing");
 }
 else if((nextlen[index]!=BUF_SIZ) && fn[index]){
@@ -186,6 +194,7 @@ printf("%s\n","Finishing writing file");
 if(!diff)
 fwrite(message,1,nextlen[index],fn[index]);
 else {
+printf("%s\n","Continueing to second file");
       for(i=0; i<90; i++){
          message[0]= message[0]+i;
 ssub=message[2]+message[1]-message[0];
