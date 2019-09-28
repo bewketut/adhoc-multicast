@@ -95,7 +95,8 @@ char *buffer = (char *) malloc(sizeof(char *)*size);
 int numr; 
 sc=sendto(so,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)); 
 if(sc==-1) printf("Unable to send, do group exist\n");
-for(i=0; i< ntimes*2; i++)
+int ntimes2=ntimes*2;
+for(i=0; i<ntimes2; i++)
 while((numr=fread(buffer,sizeof(char),size,fp))!=0);
 
 for(i=0;i< ntimes;i++){
