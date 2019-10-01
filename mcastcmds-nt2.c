@@ -63,15 +63,14 @@ for(i=2;i<argc && strcmp(argv[i],"-m"); i++)
 command= strcat(strcat(command,argv[i])," "); 
  sc= sendto(so,command, strlen(command)+1, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 if(sc==-1) printf("Unable to send, do group exist\n");
-//printf("%s%d\n",command, sc);
  }
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
  !strcmp(argv[1],"-cf")){
-if(argc>3) {printf("Put a file name ONLY\n"); return 0;}
 fp = fopen(argv[2],"rb");
 if(!fp) {printf("%s\n","Unable to open file for reading (read permission).");
             exit(1);}
 if(!strcmp(argv[1],"-cf")){
+if(argc>3) {printf("Put a file name ONLY\n"); return 0;}
    message[0]='-';message[1]='c'; message[2]='f';
    while(fgets(message+3,50,fp))
        //sc=sendto(so,message,53, 0, (struct sockaddr *) &mcast, sizeof(mcast));
@@ -86,7 +85,6 @@ char *filename= (char *) malloc(sizeof(char)*300);
 if(!strcmp(argv[1],"-F")) { filename[1]='S'; filename[2]='0'; filename[3]='F';filename[4]='!';}
 filename[0]=filehash; filename[5]='\0';
 filename=strcat(filename,argv[2]);//initialization 
-printf("fileround %d", filehash);
 fseek(fp , 0 , SEEK_END); long size; 
 size = ftell(fp); rewind(fp); 
 long ntimes= (size/BUF_SIZ);
@@ -99,8 +97,8 @@ sc=sendto(so,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast, sizeof(
 if(sc==-1) printf("Unable to send, do group exist\n");
 int ntimes0=ntimes*2;
 
-//for(i=0; i<ntimes0; i++)
-//while((numr=fread(buffer,sizeof(char),size,fp))!=0);
+for(i=0; i<ntimes0; i++)
+while((numr=fread(buffer,sizeof(char),size,fp))!=0);
 
 for(i=0;i< ntimes;i++){
 while((numr=fread(buffer,sizeof(char),size,fp))!=0);
@@ -122,10 +120,8 @@ while((numr=fread(buffer,sizeof(char),size,fp))!=0);
  d= buffer[i*BUF_SIZ+1];
 buffer[i*BUF_SIZ]=buffer[i*BUF_SIZ] - filehash3;
 buffer[i*BUF_SIZ+2]=buffer[i*BUF_SIZ+2]+d-c +filehash3;
-// printf("i===%d", i);
 while((n=sendto(so,buffer+i*BUF_SIZ,rem, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
 fclose(fp);
-
 remn[3]='f'; 
 while((n=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 if(sc==-1) printf("Unable to send, do group exist\n");
@@ -203,13 +199,12 @@ diff=calcfhash(message+2,message[1], message,fhashes,90);
 printf("%s %d\n","Finishing writing file", diff);
 if(diff)
 fwrite(message,1,nextlen[diff%90],fn[diff%90]);
-//nextlen[index]=BUF_SIZ;
+nextlen[index]=BUF_SIZ;
 diff=0;
 }
 else if(fn[index]){
 diff= calcfhash(message+2,message[1], message,fhashes,90);
 //printf("fhash:%d index:%d \n",diff, index);
-//printf("fhash:%d, fsub:%d, ssub:%d\n",fhash, fsub, -(ssub-fsub));
 if(diff){
 fwrite(message,1,nextlen[diff%90],fn[diff%90]);
 diff=0;}}
@@ -242,7 +237,6 @@ m0dec= *m0 + hashes[i];
 ssub=(unsigned char) *m2+m1-m0dec;
 diff=fsub-ssub - hashes[i];
 //diff= ssub-hashes[i]; 
-//printf("fsub:%d, ssub: %d, diff:%d\n", fsub, ssub,diff);
 //printf("fsub:%d, ssub: %d, diff:%d\n", fsub, ssub,diff);
      if(!diff){ *m0=m0dec; return hashes[i]; }
 } }
