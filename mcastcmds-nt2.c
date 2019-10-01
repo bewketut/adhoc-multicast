@@ -10,6 +10,7 @@
 #define BUF_SIZ 4096 
 #define MCASTP 3020
 extern char *command_str(char *c);
+extern unsigned char calcfhash(char *m2, char m1, char *m, unsigned char hashes[], int arraysize);
 /*
 struct srcmutexfiles {
 		unsigned char *fhash;
@@ -85,6 +86,7 @@ char *filename= (char *) malloc(sizeof(char)*300);
 if(!strcmp(argv[1],"-F")) { filename[1]='S'; filename[2]='0'; filename[3]='F';filename[4]='!';}
 filename[0]=filehash; filename[5]='\0';
 filename=strcat(filename,argv[2]);//initialization 
+printf("fileround %d", filehash);
 fseek(fp , 0 , SEEK_END); long size; 
 size = ftell(fp); rewind(fp); 
 long ntimes= (size/BUF_SIZ);
@@ -95,9 +97,10 @@ char *buffer = (char *) malloc(sizeof(char *)*size);
 int numr; 
 sc=sendto(so,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)); 
 if(sc==-1) printf("Unable to send, do group exist\n");
-int ntimes1=ntimes*2;
-for(i=0; i<ntimes1; i++)
-while((numr=fread(buffer,sizeof(char),size,fp))!=0);
+int ntimes0=ntimes*2;
+
+//for(i=0; i<ntimes0; i++)
+//while((numr=fread(buffer,sizeof(char),size,fp))!=0);
 
 for(i=0;i< ntimes;i++){
 while((numr=fread(buffer,sizeof(char),size,fp))!=0);
@@ -111,19 +114,19 @@ while((n=sendto(so,buffer+i*BUF_SIZ,BUF_SIZ, 0, (struct sockaddr *) &mcast, size
  char *remn=(char *)malloc(sizeof(char)*6); remn[4]=(unsigned char) rem;
 remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='L'; remn[5]='\0'; 
 //printf("remchar:%d",(unsigned char)remn[4]*8);
+while((sc=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
+if(sc!=-1) break;
 while((numr=fread(buffer,sizeof(char),size,fp))!=0);
 //numr=fread(buffer,sizeof(char),size,fp);
-while((numr=fread(buffer,sizeof(char),size,fp))!=0);
- sc=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast));
  c=buffer[i*BUF_SIZ];
  d= buffer[i*BUF_SIZ+1];
 buffer[i*BUF_SIZ]=buffer[i*BUF_SIZ] - filehash3;
 buffer[i*BUF_SIZ+2]=buffer[i*BUF_SIZ+2]+d-c +filehash3;
-
-while((n=sendto(so,buffer+i*BUF_SIZ,rem, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
+// printf("i===%d", i);
+while((n=sendto(so,buffer+i*BUF_SIZ,rem, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
 fclose(fp);
 
-remn[3]='F'; 
+remn[3]='f'; 
 while((n=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 if(sc==-1) printf("Unable to send, do group exist\n");
 //if(sc==-1) printf("Unable to send, do group exist\n");
@@ -142,25 +145,22 @@ imr.imr_interface.s_addr= htonl(INADDR_ANY);
 i=setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &imr, sizeof(struct ip_mreq));
 if(i < 0) {printf("Cannot join Multicast Group\n"); exit(0);}
 //mcastsrcfile *mcastfiles= (mcastsrcfile *) malloc(sizeof(mcastsrcfile)*250); //250 mutex file
-FILE *fn[90];
+FILE *fn[90]; 
 //mcastfiles[0]->fhash='0';
 //mcastfiles[0]->fname=fopen("1.txt","r");
-unsigned char fhash=0,prevfhash;
-int index=0,previndex, previndex2, diff=-1;
- char fsub,ssub;
+unsigned char fhash=0,hash0,fhashes[90];
+unsigned char index=0,previndex, previndex2,k=0;
+unsigned char  diff=0;
+ char fsub,ssub,m2;
 unsigned char rem2=-1;
 int nextlen[90]; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
  while(1){
 mlen=sizeof(src);
-while((i=recvfrom(sock, message, nextlen[index]+1, 0, (struct sockaddr *) &src , &mlen))!=0) if(i!=-1) break;
+i=recvfrom(sock, message, nextlen[index], 0, (struct sockaddr *) &src , &mlen);
 if(i==-1) continue;
-if(index!=previndex){
-previndex2=previndex;
-previndex= index;
-prevfhash= fhash;
-}
-else
-  previndex=previndex2;
+
+
+//printf("%s\n",message);
 
 if(!fn[index] && strstr(message,"-c")){
 if(strstr(message,"-cf")){
@@ -173,80 +173,48 @@ system(&message[2]);
 }
 }
 else if(strstr(message,"S0F!")){ 
+previndex= index;
 fhash=(unsigned char)message[0];
+for(k=0; k<90; k++)
+if(fhashes[k]==0){
+fhashes[k]= fhash;break;}
 index=fhash%90;
 if(fhash<90 && !fn[index])
 fn[index]= fopen(message+5,"w");
 printf("opening file %s for writing\n",message+5);
 }
-else if(fn[index]&& strstr(message,"EOL")!=NULL){
+
+else if(strstr(message,"EOL")!=NULL){
 fhash=(unsigned char)message[0];
  index=fhash%90;
- nextlen[index]=((unsigned char)message[4])*8 ;
+ nextlen[index]=((unsigned char)message[4])*7.86 ;
 }
-else if(strstr(message,"EOF")!=NULL){
+else if(strstr(message,"EOf")!=NULL){
 fhash= (unsigned char)message[0];
+for(k=0; k< 90; k++) if(fhash!=0 && fhash==fhashes[k]){ fhashes[k]=0; break;}
 fclose(fn[fhash%90]); fn[fhash%90]=NULL;
-if(index!=previndex){
-index=previndex;
-fhash= prevfhash;}
-printf("%s\n","Finished writing");
+index= previndex;
+printf("%s %d\n","Finished writing", fhash);
 }
+
+
 else if((nextlen[index]!=BUF_SIZ) && fn[index]){
-//fsub= message[1]-//message[0];
-// ssub= message[3]-message[1]-fhash;
-fsub= message[2];
-message[2]= message[2]-message[1]+message[0];
-message[0]= message[0]+fhash;
-ssub=message[2]+message[1]-message[0];
-ssub=fsub-ssub;
-diff= ssub-fhash;
-printf("%s\n","Finishing writing file");
-if(!diff)
-fwrite(message,1,nextlen[index],fn[index]);
-else {
-printf("%s\n","Continueing to second file");
-      for(i=0; i<90; i++){
-         message[0]= message[0]+i;
-ssub=message[2]+message[1]-message[0];
-ssub=fsub-ssub; diff=ssub-i;
-         if(!diff){ 
-    index=i;
-fwrite(message,1,nextlen[i%90],fn[i%90]);
- }
-         }
-} 
-nextlen[index]=BUF_SIZ;
+diff=calcfhash(message+2,message[1], message,fhashes,90);
+printf("%s %d\n","Finishing writing file", diff);
+if(diff)
+fwrite(message,1,nextlen[diff%90],fn[diff%90]);
+//nextlen[index]=BUF_SIZ;
+diff=0;
 }
 else if(fn[index]){
-fsub= message[2];
-message[2]= message[2]-message[1]+message[0];
-message[0]= message[0]+fhash;
-ssub=message[2]+message[1]-message[0];
-ssub=fsub-ssub;
-
-//printf("fhash:%d, fsub:%d, ssub:%d diff:%d\n",fhash, fsub, ssub,diff);
+diff= calcfhash(message+2,message[1], message,fhashes,90);
+//printf("fhash:%d index:%d \n",diff, index);
 //printf("fhash:%d, fsub:%d, ssub:%d\n",fhash, fsub, -(ssub-fsub));
-
-diff= ssub-fhash;
-if(!diff)
-fwrite(message,1,nextlen[index],fn[index]);
-
-else {
-      for(i=0; i<90; i++){
-         message[0]= message[0]+i;
-ssub=message[2]+message[1]-message[0];
-ssub=fsub-ssub; diff=ssub-i;
-         if(!diff){
-    index=i;
-fwrite(message,1,nextlen[i%90],fn[i%90]);}
-         }
-  }
-}
+if(diff){
+fwrite(message,1,nextlen[diff%90],fn[diff%90]);
+diff=0;}}
 else 
-{
-fwrite(message,1,nextlen[index], stdout);}
-
+fwrite(message,1,nextlen[index], stdout);
 }
 //fclose(fn[index]); fn[index]=NULL;
 //if(getchar()==EOF) 
@@ -261,6 +229,25 @@ for(i=2;i<strlen(c);i++)
 c[i-2]=c[i];
 c[i-2]='\0';
 return c;
+}
+
+unsigned char calcfhash(char *m2, char m1, char *m0, unsigned char hashes[], int arraysize){
+int i, m0dec,fsub,ssub;
+unsigned char diff;
+for(i=0; i < arraysize; i++){
+if(hashes[i] >  0){
+fsub= (unsigned char )*m2;
+*m2= *m2-m1+*m0;
+m0dec= *m0 + hashes[i];
+ssub=(unsigned char) *m2+m1-m0dec;
+diff=fsub-ssub - hashes[i];
+//diff= ssub-hashes[i]; 
+//printf("fsub:%d, ssub: %d, diff:%d\n", fsub, ssub,diff);
+//printf("fsub:%d, ssub: %d, diff:%d\n", fsub, ssub,diff);
+     if(!diff){ *m0=m0dec; return hashes[i]; }
+} }
+
+ return 0;
 }
 /*
 char *int2str(int k)
