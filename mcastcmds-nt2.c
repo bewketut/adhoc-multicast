@@ -153,7 +153,7 @@ unsigned char  diff=0;
 int nextlen[90]; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
  while(1){
 mlen=sizeof(src);
-i=recvfrom(sock, message, nextlen[index], 0, (struct sockaddr *) &src , &mlen);
+i=recvfrom(sock, message, BUF_SIZ, 0, (struct sockaddr *) &src , &mlen);
 if(i==-1) continue;
 
 
@@ -197,10 +197,11 @@ printf("%s %d\n","Finished writing", fhash);
 
 else if((nextlen[index]!=BUF_SIZ) && fn[index]){
 diff=calcfhash(message+2,message[1], message,fhashes,90);
-printf("%s %d\n","Finishing writing file", diff);
 if(diff)
 fwrite(message,1,nextlen[diff%90],fn[diff%90]);
-nextlen[index]=BUF_SIZ;
+if(diff==index){
+printf("%s %d\n","Finishing writing file", index);
+nextlen[index]=BUF_SIZ;}
 diff=0;
 }
 else if(fn[index]){
