@@ -67,10 +67,10 @@ if(sc==-1) printf("Unable to send, do group exist\n");
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
  !strcmp(argv[1],"-cf")){
 fp = fopen(argv[2],"rb");
+if(argc>3) {printf("Put a file name\n"); return 0;}
 if(!fp) {printf("%s\n","Unable to open file for reading (read permission).");
             exit(1);}
 if(!strcmp(argv[1],"-cf")){
-if(argc>3) {printf("Put a file name ONLY\n"); return 0;}
    message[0]='-';message[1]='c'; message[2]='f';
    while(fgets(message+3,50,fp))
        //sc=sendto(so,message,53, 0, (struct sockaddr *) &mcast, sizeof(mcast));
@@ -89,6 +89,8 @@ fseek(fp , 0 , SEEK_END); long size;
 size = ftell(fp); rewind(fp); 
 long ntimes= (size/BUF_SIZ);
 int rem = size%BUF_SIZ;
+char rem1 =rem/256; char rem2=rem%256;
+
 char *buffer = (char *) malloc(sizeof(char *)*size); 
 //char *buffer2=(char *)malloc(sizeof(char *)*2); buffer2[0]=filehash3;
 //int j=0;
@@ -109,8 +111,8 @@ buffer[i*BUF_SIZ+2]=buffer[i*BUF_SIZ+2]+d-c +filehash3;
 while((n=sendto(so,buffer+i*BUF_SIZ,BUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 } 
 
- char *remn=(char *)malloc(sizeof(char)*6); remn[4]=(unsigned char) rem;
-remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='L'; remn[5]='\0'; 
+ char *remn=(char *)malloc(sizeof(char)*6); remn[4]= rem1; remn[5]=rem2;
+remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='L'; remn[6]='\0'; 
 //printf("remchar:%d",(unsigned char)remn[4]*8);
 while((sc=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
 if(sc!=-1) break;
@@ -148,7 +150,6 @@ unsigned char fhash=0,hash0,fhashes[90];
 unsigned char index=0,previndex, previndex2,k=0;
 unsigned char  diff=0;
  char fsub,ssub,m2;
-unsigned char rem2=-1;
 int nextlen[90]; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
  while(1){
 mlen=sizeof(src);
@@ -183,7 +184,7 @@ printf("opening file %s for writing\n",message+5);
 else if(strstr(message,"EOL")!=NULL){
 fhash=(unsigned char)message[0];
  index=fhash%90;
- nextlen[index]=((unsigned char)message[4])*7.86 ;
+ nextlen[index]=((unsigned char)message[4])*256 + ((unsigned char)message[5]) ;
 }
 else if(strstr(message,"EOf")!=NULL){
 fhash= (unsigned char)message[0];
