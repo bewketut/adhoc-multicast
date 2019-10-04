@@ -147,7 +147,7 @@ FILE *fn[90];
 //mcastfiles[0]->fhash='0';
 //mcastfiles[0]->fname=fopen("1.txt","r");
 unsigned char fhash=0,hash0,fhashes[90];
-unsigned char index=0,previndex, previndex2,k=0;
+unsigned char index=0,previndex, files2write=0,k=0;
 unsigned char  diff=0;
  char fsub,ssub,m2;
 int nextlen[90]; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
@@ -159,7 +159,7 @@ if(i==-1) continue;
 
 //printf("%s\n",message);
 
-if(!fn[index] && strstr(message,"-c")){
+if(!files2write && strstr(message,"-c")){
 if(strstr(message,"-cf")){
 printf("%s\n", &message[3]);
 system(&message[3]);
@@ -177,7 +177,7 @@ if(fhashes[k]==0){
 fhashes[k]= fhash;break;}
 index=fhash%90;
 if(fhash<90 && !fn[index])
-fn[index]= fopen(message+5,"w");
+fn[index]= fopen(message+5,"w"); files2write++;
 printf("opening file %s for writing\n",message+5);
 }
 
@@ -190,12 +190,12 @@ else if(strstr(message,"EOf")!=NULL){
 fhash= (unsigned char)message[0];
 for(k=0; k< 90; k++) if(fhash!=0 && fhash==fhashes[k]){ fhashes[k]=0; break;}
 fclose(fn[fhash%90]); fn[fhash%90]=NULL;
-index= previndex;
+index= previndex; files2write--;
 printf("%s %d\n","Finished writing", fhash);
 }
 
 
-else if((nextlen[index]!=BUF_SIZ) && fn[index]){
+else if((nextlen[index]!=BUF_SIZ) && files2write){
 diff=calcfhash(message+2,message[1], message,fhashes,90);
 if(diff)
 fwrite(message,1,nextlen[diff%90],fn[diff%90]);
@@ -204,14 +204,15 @@ printf("%s %d\n","Finishing writing file", index);
 nextlen[index]=BUF_SIZ;}
 diff=0;
 }
-else if(fn[index]){
+else if(files2write){
 diff= calcfhash(message+2,message[1], message,fhashes,90);
 //printf("fhash:%d index:%d \n",diff, index);
 if(diff){
 fwrite(message,1,nextlen[diff%90],fn[diff%90]);
 diff=0;}}
 else 
-fwrite(message,1,nextlen[index], stdout);
+ fwrite(message,1,nextlen[index], stdout);
+
 }
 //fclose(fn[index]); fn[index]=NULL;
 //if(getchar()==EOF) 
