@@ -71,10 +71,10 @@ if(argc>3) {printf("Put a file name\n"); return 0;}
 if(!fp) {printf("%s\n","Unable to open file for reading (read permission).");
             exit(1);}
 if(!strcmp(argv[1],"-cf")){
-   message[0]='-';message[1]='c'; message[2]='f';
+   message[0]='-';message[1]='c'; message[2]='f'; 
    while(fgets(message+3,50,fp))
        //sc=sendto(so,message,53, 0, (struct sockaddr *) &mcast, sizeof(mcast));
-       while((n=sendto(so,message,53, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
+       while((n=sendto(so,message,54, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
 }
 else{
 int fileround=argv[2][0] + argv[2][strlen(argv[2])-5] - argv[2][strlen(argv[2])-3];
@@ -157,8 +157,8 @@ i=recvfrom(sock, message, BUF_SIZ, 0, (struct sockaddr *) &src , &mlen);
 if(i==-1) continue;
 
 
-//printf("%s\n",message);
-if(strstr(message,"S0F!")){ 
+//printf("%s\n",message+1);
+if(!strncmp(message+1,"S0F!",4)){ 
 previndex= index;
 fhash=(unsigned char)message[0];
 for(k=0; k<90; k++)
@@ -168,22 +168,19 @@ index=fhash%90;
 if(fhash<90 && !fn[index])
 fn[index]= fopen(message+5,"w"); files2write++;
 printf("opening file %s for writing\n",message+5);
-continue;
 }
-else if(strstr(message,"EOL")!=NULL){
+else if(!strncmp(message+1,"EOL",3)){
 fhash=(unsigned char)message[0];
  index=fhash%90;
  nextlen[index]=((unsigned char)message[4])*256 + ((unsigned char)message[5]) ;
-continue;
 }
-else if(strstr(message,"EOf")!=NULL){
+else if(!strncmp(message+1,"EOf",3)){
 fhash= (unsigned char)message[0];
 for(k=0; k< 90; k++) if(fhash!=0 && fhash==fhashes[k]){ fhashes[k]=0; break;}
 fclose(fn[fhash%90]); fn[fhash%90]=NULL;
 index= previndex; 
 files2write--;
 printf("%s %d\n","Finished writing", fhash);
-continue;
 }
 else if((nextlen[index]!=BUF_SIZ) && files2write){
 diff=calcfhash(message+2,message[1], message,fhashes,90);
@@ -195,7 +192,6 @@ nextlen[index]=BUF_SIZ;}
  index=diff;
 diff=0;
 }
-continue;
 }
 else if(files2write){
 diff= calcfhash(message+2,message[1], message,fhashes,90);
@@ -204,10 +200,9 @@ fwrite(message,1,nextlen[diff%90],fn[diff%90]);
 index=diff;
 diff=0;
 }
-continue;
-}
-else if(!files2write && strstr(message,"-c")){
-if(strstr(message,"-cf")){
+} 
+else if(!files2write && !strncmp(message,"-c",2)){
+if(!strncmp(message,"-cf",3)){
 printf("%s\n", &message[3]);
 system(&message[3]);
 }
@@ -225,8 +220,8 @@ else
  }*/
 }
 
-else 
- fwrite(message,1,nextlen[index], stdout);
+//else 
+ //fwrite(message,1,nextlen[index], stdout);
 
 }
 //fclose(fn[index]); fn[index]=NULL;
