@@ -7,7 +7,7 @@
 #include <string.h>
 #include <netdb.h>
 //#define BUF_SIZ 266 
-#define BUF_SIZ 4096 
+#define BUF_SIZ 832 
 #define MCASTP 3020
 extern char *command_str(char *c);
 extern unsigned char calcfhash(char *m2, char m1, char *m, unsigned char hashes[], int arraysize);
@@ -29,7 +29,7 @@ FILE *fp;
 struct ip_mreq imr;
 //for (i=0; i<argc; i++) printf("%s", argv[2]);
 if(argc!=1 && argc < 3 ){
-printf("%s -c[f] command [command file]  or -F(f) file(write file -f on stdout) -m mcastAddr (Write mode)\n",argv[0]);
+printf("%s -c[f] command [command file] or -F(f) file(write file -f on stdout) -m mcastAddr (Write mode)\n",argv[0]);
 printf("%s -m mcastAddr (using -235.235.232.213)(Receive mode)\n",argv[0]);
 return 0;
 }
@@ -103,8 +103,8 @@ for(i=0; i<ntimes0; i++)
 while((numr=fread(buffer,sizeof(char),size,fp))!=0);
 
 for(i=0;i< ntimes;i++){
-while((numr=fread(buffer,sizeof(char),size,fp))!=0);
- c=buffer[i*BUF_SIZ];
+do {numr=fread(buffer,sizeof(char),size,fp);} while(numr!=0);
+  c=buffer[i*BUF_SIZ];
  d= buffer[i*BUF_SIZ+1];
 buffer[i*BUF_SIZ]=buffer[i*BUF_SIZ] - filehash3;
 buffer[i*BUF_SIZ+2]=buffer[i*BUF_SIZ+2]+d-c +filehash3;
@@ -116,7 +116,7 @@ remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='L'; remn[6]='\0';
 //printf("remchar:%d",(unsigned char)remn[4]*8);
 while((sc=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
 if(sc!=-1) break;
-while((numr=fread(buffer,sizeof(char),size,fp))!=0);
+do {numr=fread(buffer,sizeof(char),size,fp);} while (numr!=0);
 //numr=fread(buffer,sizeof(char),size,fp);
  c=buffer[i*BUF_SIZ];
  d= buffer[i*BUF_SIZ+1];
@@ -158,18 +158,7 @@ if(i==-1) continue;
 
 
 //printf("%s\n",message);
-
-if(!files2write && strstr(message,"-c")){
-if(strstr(message,"-cf")){
-printf("%s\n", &message[3]);
-system(&message[3]);
-}
-else {
-printf("%s\n", &message[2]);
-system(&message[2]);
-}
-}
-else if(strstr(message,"S0F!")){ 
+if(strstr(message,"S0F!")){ 
 previndex= index;
 fhash=(unsigned char)message[0];
 for(k=0; k<90; k++)
@@ -179,37 +168,63 @@ index=fhash%90;
 if(fhash<90 && !fn[index])
 fn[index]= fopen(message+5,"w"); files2write++;
 printf("opening file %s for writing\n",message+5);
+continue;
 }
-
 else if(strstr(message,"EOL")!=NULL){
 fhash=(unsigned char)message[0];
  index=fhash%90;
  nextlen[index]=((unsigned char)message[4])*256 + ((unsigned char)message[5]) ;
+continue;
 }
 else if(strstr(message,"EOf")!=NULL){
 fhash= (unsigned char)message[0];
 for(k=0; k< 90; k++) if(fhash!=0 && fhash==fhashes[k]){ fhashes[k]=0; break;}
 fclose(fn[fhash%90]); fn[fhash%90]=NULL;
-index= previndex; files2write--;
+index= previndex; 
+files2write--;
 printf("%s %d\n","Finished writing", fhash);
+continue;
 }
-
-
 else if((nextlen[index]!=BUF_SIZ) && files2write){
 diff=calcfhash(message+2,message[1], message,fhashes,90);
-if(diff)
+if(diff> 0){
 fwrite(message,1,nextlen[diff%90],fn[diff%90]);
 if(diff==index){
 printf("%s %d\n","Finishing writing file", index);
 nextlen[index]=BUF_SIZ;}
+ index=diff;
 diff=0;
+}
+continue;
 }
 else if(files2write){
 diff= calcfhash(message+2,message[1], message,fhashes,90);
-//printf("fhash:%d index:%d \n",diff, index);
-if(diff){
+if(diff> 0){
 fwrite(message,1,nextlen[diff%90],fn[diff%90]);
-diff=0;}}
+index=diff;
+diff=0;
+}
+continue;
+}
+else if(!files2write && strstr(message,"-c")){
+if(strstr(message,"-cf")){
+printf("%s\n", &message[3]);
+system(&message[3]);
+}
+else {
+printf("%s\n", &message[2]);
+system(&message[2]);
+}
+/*
+  char *mystr= strstr(message, "-P");
+if(mystr){
+if(mystr[2]==' ')
+ fprintf(stdout,"%s\n", mystr+3);
+else 
+ fprintf(stdout, "%s\n", mystr+2);
+ }*/
+}
+
 else 
  fwrite(message,1,nextlen[index], stdout);
 
@@ -231,7 +246,7 @@ return c;
 
 unsigned char calcfhash(char *m2, char m1, char *m0, unsigned char hashes[], int arraysize){
 int i, m0dec,fsub,ssub;
-unsigned char diff;
+char diff;
 for(i=0; i < arraysize; i++){
 if(hashes[i] >  0){
 fsub= (unsigned char )*m2;
