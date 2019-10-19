@@ -220,8 +220,8 @@ else
  }*/
 }
 
-//else 
- //fwrite(message,1,nextlen[index], stdout);
+else 
+ fwrite(message,1,nextlen[index], stdout);
 
 }
 //fclose(fn[index]); fn[index]=NULL;
