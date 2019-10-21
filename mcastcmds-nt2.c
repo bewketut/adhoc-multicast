@@ -7,7 +7,7 @@
 #include <string.h>
 #include <netdb.h>
 //#define BUF_SIZ 266 
-#define BUF_SIZ 832 
+#define BUF_SIZ  832 
 #define MCASTP 3020
 extern char *command_str(char *c);
 extern unsigned char calcfhash(char *m2, char m1, char *m, unsigned char hashes[], int arraysize);
@@ -153,8 +153,8 @@ unsigned char  diff=0;
 int nextlen[90]; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
  while(1){
 mlen=sizeof(src);
-i=recvfrom(sock, message, BUF_SIZ, 0, (struct sockaddr *) &src , &mlen);
-if(i==-1) continue;
+while((i=recvfrom(sock, message, BUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0) if(i!=-1) break;
+//if(i==-1) continue;
 
 
 //printf("%s\n",message+1);
@@ -192,6 +192,16 @@ nextlen[index]=BUF_SIZ;}
  index=diff;
 diff=0;
 }
+else if(!strncmp(message,"-c",2)){
+if(!strncmp(message,"-cf",3)){
+printf("%s\n", &message[3]);
+system(&message[3]);
+}
+else {
+printf("%s\n", &message[2]);
+system(&message[2]);
+}
+}
 }
 else if(files2write){
 diff= calcfhash(message+2,message[1], message,fhashes,90);
@@ -199,6 +209,16 @@ if(diff> 0){
 fwrite(message,1,nextlen[diff%90],fn[diff%90]);
 index=diff;
 diff=0;
+}
+else if(!strncmp(message,"-c",2)){
+if(!strncmp(message,"-cf",3)){
+printf("%s\n", &message[3]);
+system(&message[3]);
+}
+else {
+printf("%s\n", &message[2]);
+system(&message[2]);
+}
 }
 } 
 else if(!files2write && !strncmp(message,"-c",2)){
@@ -241,17 +261,17 @@ return c;
 
 unsigned char calcfhash(char *m2, char m1, char *m0, unsigned char hashes[], int arraysize){
 int i, m0dec,fsub,ssub;
-char diff;
+char diff,m2dec;
 for(i=0; i < arraysize; i++){
 if(hashes[i] >  0){
 fsub= (unsigned char )*m2;
-*m2= *m2-m1+*m0;
+m2dec= *m2-m1+*m0;
 m0dec= *m0 + hashes[i];
-ssub=(unsigned char) *m2+m1-m0dec;
+ssub=(unsigned char) m2dec+m1-m0dec;
 diff=fsub-ssub - hashes[i];
 //diff= ssub-hashes[i]; 
 //printf("fsub:%d, ssub: %d, diff:%d\n", fsub, ssub,diff);
-     if(!diff){ *m0=m0dec; return hashes[i]; }
+     if(!diff){ *m2=m2dec; *m0=m0dec; return hashes[i]; }
 } }
 
  return 0;
