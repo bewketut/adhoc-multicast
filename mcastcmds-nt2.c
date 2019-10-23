@@ -84,6 +84,8 @@ unsigned char filehash= filehash3;
 char *filename= (char *) malloc(sizeof(char)*300);
 if(!strcmp(argv[1],"-F")) { filename[1]='S'; filename[2]='0'; filename[3]='F';filename[4]='!';}
 filename[0]=filehash; filename[5]='\0';
+if(strrchr(argv[2],'/')) filename=strcat(filename,strrchr(argv[2],'/')+1);
+else
 filename=strcat(filename,argv[2]);//initialization 
 fseek(fp , 0 , SEEK_END); long size; 
 size = ftell(fp); rewind(fp); 
@@ -153,8 +155,8 @@ unsigned char  diff=0;
 int nextlen[90]; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
  while(1){
 mlen=sizeof(src);
-while((i=recvfrom(sock, message, BUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0) if(i!=-1) break;
-//if(i==-1) continue;
+while((i=recvfrom(sock, message, BUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0)
+if(i!=-1) break;
 
 
 //printf("%s\n",message+1);
@@ -210,6 +212,7 @@ fwrite(message,1,nextlen[diff%90],fn[diff%90]);
 index=diff;
 diff=0;
 }
+
 else if(!strncmp(message,"-c",2)){
 if(!strncmp(message,"-cf",3)){
 printf("%s\n", &message[3]);
@@ -219,7 +222,7 @@ else {
 printf("%s\n", &message[2]);
 system(&message[2]);
 }
-}
+} 
 } 
 else if(!files2write && !strncmp(message,"-c",2)){
 if(!strncmp(message,"-cf",3)){
@@ -271,7 +274,7 @@ ssub=(unsigned char) m2dec+m1-m0dec;
 diff=fsub-ssub - hashes[i];
 //diff= ssub-hashes[i]; 
 //printf("fsub:%d, ssub: %d, diff:%d\n", fsub, ssub,diff);
-     if(!diff){ *m2=m2dec; *m0=m0dec; return hashes[i]; }
+     if(!diff){*m2=m2dec;  *m0=m0dec; return hashes[i]; }
 } }
 
  return 0;
