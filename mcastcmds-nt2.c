@@ -157,6 +157,7 @@ int nextlen[90]; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
 mlen=sizeof(src);
 while((i=recvfrom(sock, message, BUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0)
 if(i!=-1) break;
+//if(i==-1) continue;
 
 
 //printf("%s\n",message+1);
@@ -178,11 +179,12 @@ fhash=(unsigned char)message[0];
 }
 else if(!strncmp(message+1,"EOf",3)){
 fhash= (unsigned char)message[0];
+if(fn[fhash%90]){
 for(k=0; k< 90; k++) if(fhash!=0 && fhash==fhashes[k]){ fhashes[k]=0; break;}
 fclose(fn[fhash%90]); fn[fhash%90]=NULL;
 index= previndex; 
 files2write--;
-printf("%s %d\n","Finished writing", fhash);
+printf("%s %d\n","Finished writing", fhash);}
 }
 else if((nextlen[index]!=BUF_SIZ) && files2write){
 diff=calcfhash(message+2,message[1], message,fhashes,90);
@@ -243,7 +245,7 @@ else
  }*/
 }
 
-else 
+else  
  fwrite(message,1,nextlen[index], stdout);
 
 }
