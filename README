@@ -1,9 +1,13 @@
 what you need
 =============
 You need iptables >= 1.4.3
-and kernel-source >= 2.6.17  (can also use ONLY header files -kernel-headers*.rpm/deb in /lib/modules)
+and kernel-header >= 2.6.17  (can also use ONLY header files -kernel-headers*.rpm/deb in /lib/modules)
 tool: socat, vlc 
-main module is xt_mcast.c 
+main module is xt_mcast.c  
+--now updated to work with ping if you don't have socat and to use mcastcmds instead of vlc for testing. 
+--Intentional small bug (for it not work) has been removed...
+ (copyrighted work)code bug removed and has been made Berlkely license and free
+(Give credit to the copyright owner-Bewketu Tadilo (me)- in any further code). 
 What it does
 ============
 This module provides a filter for incoming multicast traffic by doing the f/g:
