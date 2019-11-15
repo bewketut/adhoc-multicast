@@ -36,10 +36,25 @@ sim_test
 ========
 This gives a userland simulator to what the kernel module is trying to do.
 
-Weakly related
+related (application level filtering)
 ==============
-mcastcmds-nt2
-=============
+on the sender end:
+------------------
+1. encode with a random byte (random constant) of the beginning of the traffic (constant can be for example filename) to
+be sent data before the socket send (part of the the whole data broken by BUF_SIZed socketdata length)
+send the constant with start of file or start of data on the socket.
+then on every send encode the data as:
+thirdbyte=thirdbyte+firstbyte-secondbyte-theconstant
+firstbyte=firstbyte+theconstant,
+on the receiver end
+-------------------
+receive the constant with filename and as a start of data.
+before decoding thirdbyte hold sum= thirdbyte,then decode thirdbyte= thirdbyte-firstbyte+secondbyte;
+if diff= sum - (thirdbyte+firstbyte-secondbyte) is zero, the data is correct
+then decode firstbyte= firstbyte-theconstant....then you get data...
+if diff is not zero, you filter out the data (application level filtering is complete)
+mcastcmds-nt2 (employes the above application level filtering mechanism)
+========================
 This allows to run commands on remote multicast joined host and importantly multicast file transfers. Who knows maybe this
 could be used for android devices..imagine a lecturer using this app sending all "multicast joined" students lecture notes
 without "copy from this one student or from the one who has it". I have no new computer and android building tools are
