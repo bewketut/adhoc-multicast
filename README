@@ -44,13 +44,13 @@ on the sender end:
 be sent data before the socket send (part of the the whole data broken by BUF_SIZed socketdata length)
 send the constant with start of file or start of data on the socket.
 then on every send encode the data as:
-thirdbyte=thirdbyte+firstbyte-secondbyte-theconstant
+thirdbyte=thirdbyte+secondbyte-firstbyte-theconstant
 firstbyte=firstbyte+theconstant,
 on the receiver end
 -------------------
 receive the constant with filename and as a start of data.
-before decoding thirdbyte hold sum= thirdbyte,then decode thirdbyte= thirdbyte-firstbyte+secondbyte;
-if diff= sum - (thirdbyte+firstbyte-secondbyte) is zero, the data is correct
+before decoding thirdbyte hold sum= thirdbyte,then decode thirdbyte= thirdbyte-secondbyte+firstbyte;
+if diff= sum - (thirdbyte+secondbyte-firstbyte) is zero, the data is correct
 then decode firstbyte= firstbyte-theconstant....then you get data...
 if diff is not zero, you filter out the data (application level filtering is complete)
 mcastcmds-nt2 (employes the above application level filtering mechanism)
