@@ -8,6 +8,7 @@ xtlibdir        := ${libexecdir}/xtables
 xtables_CFLAGS  := 
 
 CC              := gcc
+CL		:= clang
 CCLD            := ${CC}
 LCFLAGS          := -g -O2
 LDFLAGS         := 
@@ -17,8 +18,10 @@ AM_CFLAGS      := ${regular_CFLAGS} -I${top_srcdir}/include ${xtables_CFLAGS} ${
 AM_DEPFLAGS     = -Wp,-MMD,$(@D)/.$(@F).d,-MT,$@
 
 obj-m += xt_MCAST.o #	compat_xtables.o 
-all: lib
+all: lib 
 	make -C	/lib/modules/`uname -r`/build M=`pwd`
+mcmds: mcastcmds-nt2.c
+	${CL} -o mcastcmds mcastcmds-nt2.c
 clean:
 	make -C /lib/modules/`uname -r`/build M=`pwd` clean
 	rm -rf libxt_MCAST.so
