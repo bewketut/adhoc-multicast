@@ -37,10 +37,12 @@ sim_test
 This gives a userland simulator to what the kernel module is trying to do.
 
 related (application level filtering)
-==============
-add a control byte (for file exclusion) on the last of to be sent BUF_SIZed data. Hold the data's value in temp. i.e
-temp= data[BUF_SIZ], data[BUF_SIZ]= control byte(filename for example to have mutual exclusive writes of files on
-a multicast socket)send then reassign data[BUF_SIZ]=temp and then send from that on. 
+====================================
+add a control byte (for file exclusion)on the last of to be sent BUF_SIZed data.
+1.Hold the next to be sent one byte data's value in temp. (we want to send BUF_SIZ datas but will send  BUF_SIZ+1(MCASTBUF_SIZ) with the control byte for mutual exclusion for writes on the receiver. so hold the value of data[BUF_SIZ] i.e
+temp= data[BUF_SIZ] //the next start of data array start from 0 so the end of tobe data  is data[BUF_SIZ-1](BUF_SIZ minus 1),
+2.Assign control byte as data[BUF_SIZ]= control byte(filename for example to have mutual exclusive writes of files on a multicast socket)
+3. Write the socket with data of size BUF_SIZ+1.Send the BUF_SIZed data part first then reassign temp  data[BUF_SIZ]=temp so datafile rewritten as was.then send from BUF_SIZ to 2*BUF_SIZ repeating the process from that on until file or data is fully sent. 
 mcastcmds-nt2 (employes the above application level filtering mechanism)
 ========================
 This allows to run commands on remote multicast joined host and importantly multicast file transfers. Who knows maybe this
