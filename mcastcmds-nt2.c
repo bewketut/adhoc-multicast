@@ -146,8 +146,8 @@ if(i < 0) {printf("Cannot join Multicast Group\n"); exit(0);}
 //mcastsrcfile *mcastfiles= (mcastsrcfile *) malloc(sizeof(mcastsrcfile)*250); //250 mutex file
 FILE *fn[90]; 
 char *argstr= argv[0];
-if(strrchr(argv[0],'/')){argstr[0]='.';argstr++; argstr=strrchr(argv[0],'/');argstr--;}
-printf("%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do ",argstr," -F filename or ",argstr," -c commandname\n on another terminal or computer on the network.\n waiting...");
+if(strrchr(argv[0],'/'))argstr=strrchr(argv[0],'/');
+printf("%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do .",argstr," -F filename or .",argstr," -c commandname\n on another terminal or computer on the network.\n waiting...");
 //mcastfiles[0]->fhash='0';
 //mcastfiles[0]->fname=fopen("1.txt","r");
 unsigned char fhash=0,hash0,fhashes[90];
