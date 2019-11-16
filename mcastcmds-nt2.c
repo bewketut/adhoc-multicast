@@ -121,7 +121,7 @@ do {numr=fread(buffer,sizeof(char),size,fp);} while (numr!=0);
 //fread(buffer,sizeof(char),size,fp);
 //numr=fread(buffer,sizeof(char),size,fp);
 //  c=buffer[i*BUF_SIZ+rem+1];
-buffer[i*BUF_SIZ+rem+1]=filehash3;
+buffer[i*BUF_SIZ+rem]=filehash3;
 while((n=sendto(so,buffer+i*BUF_SIZ,rem+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
 fclose(fp);
 remn[3]='f'; 
@@ -184,11 +184,9 @@ files2write--;
 printf("%s %d\n","Finished writing", fhash);}
 }
 else if(files2write){
-//printf("%d\n",message[MCASTBUF_SIZ-1]);
 index=(unsigned char) message[MCASTBUF_SIZ-1];
-
 if(previndex){
- index=(unsigned char) message[nextlen[previndex]+1];
+ index=(unsigned char) message[nextlen[previndex]];
 if(index!=previndex)
 index=(unsigned char) message[MCASTBUF_SIZ-1];
 }
