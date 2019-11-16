@@ -6,8 +6,8 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <netdb.h>
-//#define BUF_SIZ 266 
-#define BUF_SIZ  832 
+#define BUF_SIZ  831 
+#define MCASTBUF_SIZ (BUF_SIZ+1) 
 #define MCASTP 3020
 extern char *command_str(char *c);
 extern unsigned char calcfhash(char *m2, char m1, char *m, unsigned char hashes[], int arraysize);
@@ -23,7 +23,7 @@ struct in_addr mcastaddr;
 int so,sc,i,sock,n;
 unsigned int ttl,mlen;
 //const char *str1="fdakfdaj";
-char message[BUF_SIZ];
+char message[MCASTBUF_SIZ];
 unsigned char c,d;
 FILE *fp;
 struct ip_mreq imr;
@@ -99,18 +99,17 @@ char *buffer = (char *) malloc(sizeof(char *)*size);
 int numr; 
 sc=sendto(so,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)); 
 if(sc==-1) printf("Unable to send, do group exist\n");
-int ntimes0=ntimes*2;
+/*int ntimes0=ntimes*2;
 
 for(i=0; i<ntimes0; i++)
 while((numr=fread(buffer,sizeof(char),size,fp))!=0);
-
+*/
 for(i=0;i< ntimes;i++){
 do {numr=fread(buffer,sizeof(char),size,fp);} while(numr!=0);
-  c=buffer[i*BUF_SIZ];
- d= buffer[i*BUF_SIZ+1];
-buffer[i*BUF_SIZ]=buffer[i*BUF_SIZ] - filehash3;
-buffer[i*BUF_SIZ+2]=buffer[i*BUF_SIZ+2]+d-c +filehash3;
-while((n=sendto(so,buffer+i*BUF_SIZ,BUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
+  c=buffer[i*BUF_SIZ+MCASTBUF_SIZ-1];
+buffer[i*BUF_SIZ+MCASTBUF_SIZ-1]=filehash3;
+while((n=sendto(so,buffer+i*BUF_SIZ,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
+buffer[i*BUF_SIZ+MCASTBUF_SIZ-1]=c;
 } 
 
  char *remn=(char *)malloc(sizeof(char)*6); remn[4]= rem1; remn[5]=rem2;
@@ -119,12 +118,11 @@ remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='L'; remn[6]='\0';
 while((sc=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
 if(sc!=-1) break;
 do {numr=fread(buffer,sizeof(char),size,fp);} while (numr!=0);
+//fread(buffer,sizeof(char),size,fp);
 //numr=fread(buffer,sizeof(char),size,fp);
- c=buffer[i*BUF_SIZ];
- d= buffer[i*BUF_SIZ+1];
-buffer[i*BUF_SIZ]=buffer[i*BUF_SIZ] - filehash3;
-buffer[i*BUF_SIZ+2]=buffer[i*BUF_SIZ+2]+d-c +filehash3;
-while((n=sendto(so,buffer+i*BUF_SIZ,rem, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
+//  c=buffer[i*BUF_SIZ+rem+1];
+buffer[i*BUF_SIZ+rem+1]=filehash3;
+while((n=sendto(so,buffer+i*BUF_SIZ,rem+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
 fclose(fp);
 remn[3]='f'; 
 while((n=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
@@ -155,14 +153,13 @@ unsigned char  diff=0;
 int nextlen[90]; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
  while(1){
 mlen=sizeof(src);
-while((i=recvfrom(sock, message, BUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0)
+while((i=recvfrom(sock, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0)
 if(i!=-1) break;
 //if(i==-1) continue;
 
-
 //printf("%s\n",message+1);
 if(!strncmp(message+1,"S0F!",4)){ 
-previndex= index;
+//previndex= index;
 fhash=(unsigned char)message[0];
 for(k=0; k<90; k++)
 if(fhashes[k]==0){
@@ -174,27 +171,32 @@ printf("opening file %s for writing\n",message+5);
 }
 else if(!strncmp(message+1,"EOL",3)){
 fhash=(unsigned char)message[0];
- index=fhash%90;
- nextlen[index]=((unsigned char)message[4])*256 + ((unsigned char)message[5]) ;
+ previndex=fhash%90;
+ nextlen[previndex]=((unsigned char)message[4])*256 + ((unsigned char)message[5]) ;
 }
 else if(!strncmp(message+1,"EOf",3)){
 fhash= (unsigned char)message[0];
 if(fn[fhash%90]){
 for(k=0; k< 90; k++) if(fhash!=0 && fhash==fhashes[k]){ fhashes[k]=0; break;}
 fclose(fn[fhash%90]); fn[fhash%90]=NULL;
-index= previndex; 
+//index= previndex; 
 files2write--;
 printf("%s %d\n","Finished writing", fhash);}
 }
-else if((nextlen[index]!=BUF_SIZ) && files2write){
-diff=calcfhash(message+2,message[1], message,fhashes,90);
-if(diff> 0){
-fwrite(message,1,nextlen[diff%90],fn[diff%90]);
-if(diff==index){
+else if(files2write){
+//printf("%d\n",message[MCASTBUF_SIZ-1]);
+index=(unsigned char) message[MCASTBUF_SIZ-1];
+
+if(previndex){
+ index=(unsigned char) message[nextlen[previndex]+1];
+if(index!=previndex)
+index=(unsigned char) message[MCASTBUF_SIZ-1];
+}
+if(index>0){
+fwrite(message,1,nextlen[index],fn[index]);
+if(nextlen[index]!=BUF_SIZ){
 printf("%s %d\n","Finishing writing file", index);
 nextlen[index]=BUF_SIZ;}
- index=diff;
-diff=0;
 }
 else if(!strncmp(message,"-c",2)){
 if(!strncmp(message,"-cf",3)){
@@ -204,28 +206,8 @@ system(&message[3]);
 else {
 printf("%s\n", &message[2]);
 system(&message[2]);
+}}
 }
-}
-}
-else if(files2write){
-diff= calcfhash(message+2,message[1], message,fhashes,90);
-if(diff> 0){
-fwrite(message,1,nextlen[diff%90],fn[diff%90]);
-index=diff;
-diff=0;
-}
-
-else if(!strncmp(message,"-c",2)){
-if(!strncmp(message,"-cf",3)){
-printf("%s\n", &message[3]);
-system(&message[3]);
-}
-else {
-printf("%s\n", &message[2]);
-system(&message[2]);
-}
-} 
-} 
 else if(!files2write && !strncmp(message,"-c",2)){
 if(!strncmp(message,"-cf",3)){
 printf("%s\n", &message[3]);
@@ -256,6 +238,8 @@ else
 }
 return 0;
 }
+
+/*
 char *command_str(char *c){
 int i=0;
 for(i=2;i<strlen(c);i++)
@@ -267,21 +251,22 @@ return c;
 unsigned char calcfhash(char *m2, char m1, char *m0, unsigned char hashes[], int arraysize){
 int i, m0dec,fsub,ssub;
 char diff,m2dec;
-for(i=0; i < arraysize; i++){
+for(i=arraysize; i > -1; i--){
 if(hashes[i] >  0){
 fsub= (unsigned char )*m2;
 m2dec= *m2-m1+*m0;
-m0dec= *m0 + hashes[i];
+m0dec=*m0 + hashes[i]; 
+
 ssub=(unsigned char) m2dec+m1-m0dec;
-diff=fsub-ssub - hashes[i];
+diff=fsub-ssub- hashes[i];
 //diff= ssub-hashes[i]; 
-//printf("fsub:%d, ssub: %d, diff:%d\n", fsub, ssub,diff);
-     if(!diff){*m2=m2dec;  *m0=m0dec; return hashes[i]; }
+//printf("fsub:%d, ssub: %d, hashes[i]:%d diff:%d\n", fsub, ssub,hashes[i],diff);
+     if(diff==0){*m2=m2dec;  *m0=m0dec; return hashes[i]; }
 } }
 
  return 0;
 }
-/*
+
 char *int2str(int k)
 { int i;
   char str[10];
@@ -289,8 +274,8 @@ char *int2str(int k)
 
        k%i 
 }
-*/
-/*
+
+
 static struct option long_opt[] = {
     {"cmd", 1, 0, 'c'},
     {"file", 1, 0, 'f'},
