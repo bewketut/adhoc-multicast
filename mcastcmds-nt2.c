@@ -93,7 +93,7 @@ long ntimes= (size/BUF_SIZ);
 int rem = size%BUF_SIZ;
 char rem1 =rem/256; char rem2=rem%256;
 
-char *buffer = (char *) malloc(sizeof(char *)*size); 
+char *buffer = (char *) malloc(sizeof(char *)*(size+MCASTBUF_SIZ)); 
 //char *buffer2=(char *)malloc(sizeof(char *)*2); buffer2[0]=filehash3;
 //int j=0;
 int numr; 
@@ -121,8 +121,9 @@ do {numr=fread(buffer,sizeof(char),size,fp);} while (numr!=0);
 //fread(buffer,sizeof(char),size,fp);
 //numr=fread(buffer,sizeof(char),size,fp);
 //  c=buffer[i*BUF_SIZ+rem+1];
-buffer[i*BUF_SIZ+rem]=filehash3;
-while((n=sendto(so,buffer+i*BUF_SIZ,rem+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
+buffer[i*BUF_SIZ+MCASTBUF_SIZ-1]=filehash3;
+//buffer[i*BUF_SIZ+rem]=filehash3;
+while((n=sendto(so,buffer+i*BUF_SIZ,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
 fclose(fp);
 remn[3]='f'; 
 while((n=sendto(so,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
@@ -185,11 +186,7 @@ printf("%s %d\n","Finished writing", fhash);}
 }
 else if(files2write){
 index=(unsigned char) message[MCASTBUF_SIZ-1];
-if(previndex){
- index=(unsigned char) message[nextlen[previndex]];
-if(index!=previndex)
-index=(unsigned char) message[MCASTBUF_SIZ-1];
-}
+message[MCASTBUF_SIZ-1]=0;
 if(index>0){
 fwrite(message,1,nextlen[index],fn[index]);
 if(nextlen[index]!=BUF_SIZ){
