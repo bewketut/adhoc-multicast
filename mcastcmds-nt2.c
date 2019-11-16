@@ -145,6 +145,7 @@ i=setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &imr, sizeof(struct ip_mreq))
 if(i < 0) {printf("Cannot join Multicast Group\n"); exit(0);}
 //mcastsrcfile *mcastfiles= (mcastsrcfile *) malloc(sizeof(mcastsrcfile)*250); //250 mutex file
 FILE *fn[90]; 
+printf("%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do",argv[0]," -F filename or",argv[0]," -c commandname\n on another terminal or computer on the network.\n waiting...");
 //mcastfiles[0]->fhash='0';
 //mcastfiles[0]->fname=fopen("1.txt","r");
 unsigned char fhash=0,hash0,fhashes[90];
