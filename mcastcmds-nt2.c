@@ -66,7 +66,7 @@ if(sc==-1) printf("Unable to send, do group exist\n");
  }
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
  !strcmp(argv[1],"-cf")){
-fp = fopen(argv[2],"rb");
+fp = fopen(argv[2],"r");
 if(argc>3) {printf("Put a file name\n"); return 0;}
 if(!fp) {printf("%s\n","Unable to open file for reading (read permission).");
             exit(1);}
@@ -77,9 +77,9 @@ if(!strcmp(argv[1],"-cf")){
        while((n=sendto(so,message,54, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
 }
 else{
-int fileround=argv[2][0] + argv[2][strlen(argv[2])-5] - argv[2][strlen(argv[2])-3];
+unsigned char fileround=argv[2][0] + argv[2][strlen(argv[2])-5] - argv[2][strlen(argv[2])-3];
 unsigned char filehash3= fileround%90;  
-
+//printf("filehash: %d%s\n",filehash3,argv[2]);
 unsigned char filehash= filehash3;
 char *filename= (char *) malloc(sizeof(char)*300);
 if(!strcmp(argv[1],"-F")) { filename[1]='S'; filename[2]='0'; filename[3]='F';filename[4]='!';}
@@ -170,32 +170,34 @@ for(k=0; k<90; k++)
 if(fhashes[k]==0){
 fhashes[k]= fhash;break;}
 index=fhash%90;
-if(fhash<90 && !fn[index])
+if(fhash<=90 && !fn[index])
 fn[index]= fopen(message+5,"w"); files2write++;
-printf("opening file %s for writing\n",message+5);
+printf("opening file %s for writing %d\n",message+5,index);
 }
 else if(!strncmp(message+1,"EOL",3)){
 fhash=(unsigned char)message[0];
- previndex=fhash%90;
- nextlen[previndex]=((unsigned char)message[4])*256 + ((unsigned char)message[5]) ;
+ index=fhash%90;
+ nextlen[index]=((unsigned char)message[4])*256 + ((unsigned char)message[5]) ;
 }
 else if(!strncmp(message+1,"EOf",3)){
-fhash= (unsigned char)message[0];
-if(fn[fhash%90]){
-for(k=0; k< 90; k++) if(fhash!=0 && fhash==fhashes[k]){ fhashes[k]=0; break;}
-fclose(fn[fhash%90]); fn[fhash%90]=NULL;
-//index= previndex; 
+index= (unsigned char)message[0]%90;
+if(nextlen[index]!=BUF_SIZ)
+nextlen[index]=BUF_SIZ;
+printf("%s %d\n","Finished writing", index);
+if(files2write && fn[index]!=NULL){//fclose(fn[index]);
+fn[index]=NULL;
 files2write--;
-printf("%s %d\n","Finished writing", fhash);}
+} 
+//for(k=0; k< 90; k++) if(index!=0 && index==fhashes[k]){ fhashes[k]=0; break;}
+//index= previndex; 
 }
 else if(files2write){
 index=(unsigned char) message[MCASTBUF_SIZ-1];
 message[MCASTBUF_SIZ-1]=0;
 if(index>0){
 fwrite(message,1,nextlen[index],fn[index]);
-if(nextlen[index]!=BUF_SIZ){
+if(nextlen[index]!=BUF_SIZ)
 printf("%s %d\n","Finishing writing file", index);
-nextlen[index]=BUF_SIZ;}
 }
 else if(!strncmp(message,"-c",2)){
 if(!strncmp(message,"-cf",3)){
