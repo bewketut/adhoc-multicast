@@ -6,9 +6,9 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <netdb.h>
-#define BUF_SIZ 1024 
+#define BUF_SIZ 899 
 #define MCASTBUF_SIZ (BUF_SIZ+1) 
-#define MCASTP 3020
+#define MCASTP 4020
 //extern char *command_str(char *c);
 //extern unsigned char calcfhash(char *m2, char m1, char *m, unsigned char hashes[], int arraysize);
 /*
@@ -31,7 +31,7 @@ printf("%s -c[f] command [command file] or -F(f) file(write file -f on stdout) -
 printf("%s -m mcastAddr (using -235.235.232.213)(Receive mode)\n",argv[0]);
 return 0;
 }
-char *inetadr="235.235.232.213";
+char *inetadr="234.235.232.213";
 for(i=1; i<argc; i++) 
 if(!strcmp(argv[i],"-m")){ inetadr= argv[i+1]; break;}
 mcastaddr.s_addr=inet_addr(inetadr);
@@ -48,10 +48,11 @@ mcast.sin_port=htons(MCASTP);
 	   inet_ntoa(mcastaddr));
     exit(1);
   }
-sock=socket(AF_INET, SOCK_DGRAM,0);
+//sock=socket(AF_INET, SOCK_DGRAM,0);
+if(argc>2 && strcmp(argv[1],"-m")){
+if((sock=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 src.sin_family=AF_INET;
 src.sin_addr.s_addr=htonl(INADDR_ANY);
-if(argc>2 && strcmp(argv[1],"-m")){
 src.sin_port=htons(0);
 bind(sock, (struct sockaddr *) &src, sizeof(src));
 setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));
@@ -95,11 +96,11 @@ char *buffer = (char *) malloc(sizeof(char *)*(size+MCASTBUF_SIZ));
 int numr; 
 sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)); 
 if(sc==-1) printf("Unable to send, do group exist\n");
-/*int ntimes0=ntimes*2;
+
+int ntimes0=ntimes*3.2;
 for(i=0; i<ntimes0; i++)
 while((numr=fread(buffer,sizeof(char),size,fp))!=0);
-*/
-do {numr=fread(buffer,sizeof(char),size,fp);} while (numr!=0);
+
 for(i=0;i< ntimes;i++){
 do {numr=fread(buffer,sizeof(char),size,fp);} while(numr!=0);
   c=buffer[i*BUF_SIZ+MCASTBUF_SIZ-1];
@@ -107,6 +108,7 @@ buffer[i*BUF_SIZ+MCASTBUF_SIZ-1]=filehash3;
 while((n=sendto(sock,buffer+i*BUF_SIZ,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 buffer[i*BUF_SIZ+MCASTBUF_SIZ-1]=c;
 } 
+do {numr=fread(buffer,sizeof(char),size,fp);} while (numr!=0);
 fclose(fp);
  char *remn=(char *)malloc(sizeof(char)*6); remn[4]= rem1; remn[5]=rem2;
 remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='L'; remn[6]='\0'; 
@@ -122,12 +124,15 @@ if(sc==-1) printf("Unable to send, do group exist\n");
  }
 }
 else {
-src.sin_port=htons(MCASTP);
+if((so=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
+temp.sin_family=AF_INET;
+temp.sin_addr.s_addr=htonl(INADDR_ANY);
+temp.sin_port=htons(MCASTP);
 //if((sock=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
-bind(sock, (struct sockaddr *) &src, sizeof(src));
+bind(so, (struct sockaddr *) &temp, sizeof(temp));
 imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
 imr.imr_interface.s_addr= htonl(INADDR_ANY);
-i=setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &imr, sizeof(struct ip_mreq));
+i=setsockopt(so, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &imr, sizeof(struct ip_mreq));
 if(i < 0) {printf("Cannot join Multicast Group\n"); exit(0);}
 
 char *argstr= argv[0];
@@ -140,9 +145,9 @@ unsigned char index=0,previndex, files2write=0,k=0;
 unsigned char  diff=0;
  char fsub,ssub,m2;
 int nextlen[90]; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
-mlen=sizeof(src);
  while(1){
-while((i=recvfrom(sock, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0)
+mlen=sizeof(temp);
+while((i=recvfrom(so, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &temp , &mlen))!=0)
 if(i!=-1) break;
 
 if(!strncmp(message+1,"S0F!",4)){ 
