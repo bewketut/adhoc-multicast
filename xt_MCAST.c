@@ -300,7 +300,7 @@ static unsigned int unicast_handler(const struct iphdr *iph)
 
 
 static unsigned int mcast_tg4( struct sk_buff *pskb,
-			      const struct xt_target_param *par)
+			      const struct xt_action_param *par)
 {
     const struct sk_buff *skb = pskb;
     const struct xt_mcast_target_info *info = par->targinfo;
