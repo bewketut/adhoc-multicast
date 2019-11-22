@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <netdb.h>
-#define BUF_SIZ  831 
+#define BUF_SIZ  832 
 #define MCASTBUF_SIZ (BUF_SIZ+1) 
 #define MCASTP 3020
 extern char *command_str(char *c);
@@ -181,10 +181,8 @@ fhash=(unsigned char)message[0];
 }
 else if(!strncmp(message+1,"EOf",3)){
 index= (unsigned char)message[0]%90;
-if(nextlen[index]!=BUF_SIZ)
-nextlen[index]=BUF_SIZ;
 printf("%s %d\n","Finished writing", index);
-if(files2write && fn[index]!=NULL){//fclose(fn[index]);
+if(files2write && fn[index]!=NULL){fclose(fn[index]);
 fn[index]=NULL;
 files2write--;
 } 
@@ -196,8 +194,9 @@ index=(unsigned char) message[MCASTBUF_SIZ-1];
 message[MCASTBUF_SIZ-1]=0;
 if(index>0){
 fwrite(message,1,nextlen[index],fn[index]);
-if(nextlen[index]!=BUF_SIZ)
+if(nextlen[index]!=BUF_SIZ){
 printf("%s %d\n","Finishing writing file", index);
+nextlen[index]=BUF_SIZ;}
 }
 else if(!strncmp(message,"-c",2)){
 if(!strncmp(message,"-cf",3)){
