@@ -9,6 +9,8 @@
 #define BUF_SIZ 899 
 #define MCASTBUF_SIZ (BUF_SIZ+1) 
 #define MCASTP 4020
+extern char *base256(int num,char *str);
+extern int tobase10(char *str);
 //extern char *command_str(char *c);
 //extern unsigned char calcfhash(char *m2, char m1, char *m, unsigned char hashes[], int arraysize);
 /*
@@ -26,6 +28,9 @@ char message[MCASTBUF_SIZ];
 unsigned char c,d;
 FILE *fp;
 struct ip_mreq imr;
+char str[20],*str2; 
+//str2=base256(65489,str);
+//printf("%d\n,", tobase10(str2));
 if(argc!=1 && argc < 3 ){
 printf("%s -c[f] command [command file] or -F(f) file(write file -f on stdout) -m mcastAddr (Write mode)\n",argv[0]);
 printf("%s -m mcastAddr (using -235.235.232.213)(Receive mode)\n",argv[0]);
@@ -218,33 +223,32 @@ else
 return 0;
 }
 
+char *base256(int num,char *str){
+unsigned char rem;
+int div;
+int len=strlen(str);printf("%d\n",strlen(str)); str[len--]='\0';
+for(div= num/256,rem=num%256,str[len--]=rem; div > 256; div=div/256,rem=div%256)
+str[len--]=rem;
+str[len--]=div;
+return str+len;
+}
+int tobase10(char *str){
+int len= strlen(str);
+int tot,i,j;
+tot=(unsigned char) str[len-1];
+printf("%s\n",str);
+int base=100;
+int mult=256;
+for(i=0, j=len-2; j>-1 && i <len-2; i++,j--){
+tot+=((unsigned char) str[j])*mult;
+mult=mult*base;
+base=base*100;
+printf("total:%d\n",tot);
+}
+
+return tot;
+}
 /*
-char *command_str(char *c){
-int i=0;
-for(i=2;i<strlen(c);i++)
-c[i-2]=c[i];
-c[i-2]='\0';
-return c;
-}
-
-unsigned char calcfhash(char *m2, char m1, char *m0, unsigned char hashes[], int arraysize){
-int i, m0dec,fsub,ssub;
-char diff,m2dec;
-for(i=arraysize; i > -1; i--){
-if(hashes[i] >  0){
-fsub= (unsigned char )*m2;
-m2dec= *m2-m1+*m0;
-m0dec=*m0 + hashes[i]; 
-
-ssub=(unsigned char) m2dec+m1-m0dec;
-diff=fsub-ssub- hashes[i];
-//diff= ssub-hashes[i]; 
-//printf("fsub:%d, ssub: %d, hashes[i]:%d diff:%d\n", fsub, ssub,hashes[i],diff);
-     if(diff==0){*m2=m2dec;  *m0=m0dec; return hashes[i]; }
-} }
-
- return 0;
-}
 
 char *int2str(int k)
 { int i;
