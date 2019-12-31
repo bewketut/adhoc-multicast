@@ -1,4 +1,4 @@
-#define MSRC_SIZE    300 //200	//src->cli_head_nodes -how many src we *expect* (for client network)
+#define MSRC_SIZE    350 //200	//src->cli_head_nodes -how many src we *expect* (for client network)
 #define MGRP_SIZE    80	//50	//grp->cli_head_nodes -how many mgrps(224(-239).*.*.*) we *expect* (for client network)
 #define MGRP_EXPIRE   120//*60	//seconds
 //#include "compat_xtables.h"
