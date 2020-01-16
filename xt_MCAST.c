@@ -1,6 +1,6 @@
-#define MSRC_SIZE    20		//src->cli_head_nodes
-#define MGRP_SIZE    20		//grp->cli_head_nodes
-#define MGRP_EXPIRE   120	//seconds
+#define MSRC_SIZE    350 //200	//src->cli_head_nodes -how many src we *expect* (for client network)
+#define MGRP_SIZE    80	//50	//grp->cli_head_nodes -how many mgrps(224(-239).*.*.*) we *expect* (for client network)
+#define MGRP_EXPIRE   120//*60	//seconds
 //#include "compat_xtables.h"
 #include <linux/skbuff.h>
 #include <linux/module.h>
@@ -119,7 +119,7 @@ static unsigned int igmp_report(__be32 cli, __be32 grp)
     struct hlist_node *head_node = get_headnode(mgrp_hash, h);
     struct hlist_node *entry_node;
     printk("IGMP REPORT\n");
-    printk(NIPQUAD_FMT "->" NIPQUAD_FMT "\n", NIPQUAD(grp), NIPQUAD(cli));
+    //printk(NIPQUAD_FMT "->" NIPQUAD_FMT "\n", NIPQUAD(grp), NIPQUAD(cli));
     if (head_node == NULL)
 	return init_new_entry(entry, cli, h, mgrp_hash, MGRP_EXPIRE);
     //go fish 
@@ -299,12 +299,13 @@ static unsigned int unicast_handler(const struct iphdr *iph)
 }
 
 
-static unsigned int mcast_tg4(const struct sk_buff **pskb,
-			      const struct xt_target_param *par)
+static unsigned int mcast_tg4( struct sk_buff *pskb,
+			      const struct xt_action_param *par)
 {
-    const struct sk_buff *skb = *pskb;
+    const struct sk_buff *skb = pskb;
     const struct xt_mcast_target_info *info = par->targinfo;
     const struct iphdr *iph = ip_hdr(skb);
+
     if (info) {
 	if (info->msrc_size > MSRC_SIZE)
 	    source_size = info->msrc_size;
@@ -320,11 +321,11 @@ static unsigned int mcast_tg4(const struct sk_buff **pskb,
 	    return mcast_handler4(iph);	//there maybe NF_DROPs
 	if (ip_hdr(skb)->protocol == IPPROTO_IGMP)
 	    return igmp_handler(iph, skb);	//always NF_ACCEPT just for snooping
-    } else if (ip_hdr(skb)->protocol == IPPROTO_UDP) {
+    } else // if (ip_hdr(skb)->protocol == IPPROTO_UDP) {
 	//the heartbeat protocol can be ICMP, or any other so long as we 
 	// get its ip header to extract msrc.
 	return unicast_handler(iph);	//this needs to make fast construction of <s,c> pair
-    }
+   // }
     return NF_ACCEPT;
 }
 
@@ -333,8 +334,8 @@ static struct xt_target mcast_tg_reg __read_mostly = {
     .name = "MCAST",
     .revision = 0,
     .family = NFPROTO_IPV4,
-    .target = mcast_tg4,
     .targetsize=XT_ALIGN(sizeof(struct xt_mcast_target_info)),
+    .target = mcast_tg4,
     .me = THIS_MODULE,
 };
 
