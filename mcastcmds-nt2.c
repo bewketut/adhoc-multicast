@@ -102,9 +102,9 @@ int numr;
 sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)); 
 if(sc==-1) printf("Unable to send, do group exist\n");
 
-int ntimes0=ntimes*3.2;
-for(i=0; i<ntimes0; i++)
-while((numr=fread(buffer,sizeof(char),size,fp))!=0);
+//int ntimes0=ntimes*3.2;
+//for(i=0; i<ntimes0; i++)
+//while((numr=fread(buffer,sizeof(char),size,fp))!=0);
 
 for(i=0;i< ntimes;i++){
 do {numr=fread(buffer,sizeof(char),size,fp);} while(numr!=0);
