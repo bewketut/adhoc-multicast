@@ -33,10 +33,10 @@ char str[20],*str2;
 //printf("%d\n,", tobase10(str2));
 if(argc!=1 && argc < 3 ){
 printf("%s -c[f] command [command file] or -F(f) file(write file -f on stdout) -m mcastAddr (Write mode)\n",argv[0]);
-printf("%s -m mcastAddr (using -235.235.232.213)(Receive mode)\n",argv[0]);
+printf("%s -m mcastAddr (using -235.234.232.213)(Receive mode)\n",argv[0]);
 return 0;
 }
-char *inetadr="234.235.232.213";
+char *inetadr="235.234.232.213";
 for(i=1; i<argc; i++) 
 if(!strcmp(argv[i],"-m")){ inetadr= argv[i+1]; break;}
 mcastaddr.s_addr=inet_addr(inetadr);
