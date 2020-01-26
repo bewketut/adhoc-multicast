@@ -13,8 +13,6 @@
 #define MCASTP 4020
 extern char *base256(int num,char *str);
 extern int tobase10(char *str);
-//extern char *command_str(char *c);
-//extern unsigned char calcfhash(char *m2, char m1, char *m, unsigned char hashes[], int arraysize);
 /*
 struct srcmutexfiles {
 		unsigned char *fhash;
@@ -73,28 +71,25 @@ char *useraddr= strcat(strcat(user_p->pw_name,"@"),host);
 useraddr=strcat(useraddr,"~");
 
 if(!strcmp(argv[1],"-c")){
-char *command=(char *)malloc(sizeof(char)*100);
+char *command=(char *) malloc(sizeof(char)*100);
 strcpy(command,argv[1]); 
-   strncpy(command+2,useraddr,20); 
+strcpy(command+2,useraddr);
 for(i=2;i<argc && strcmp(argv[i],"-m"); i++) 
 command= strcat(strcat(command,argv[i])," "); 
-printf(command+20);
  sc= sendto(sock,command, 100, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 if(sc==-1) printf("Unable to send, do group exist\n");
  }
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
  !strcmp(argv[1],"-cf")){
 fp = fopen(argv[2],"r");
-//if(argc>3) {printf("Put a file name\n"); return 0;}
 if(!fp) {printf("%s\n","Unable to open file for reading (read permission).");
             exit(1);}
 if(!strcmp(argv[1],"-cf")){
-   message[0]='-';message[1]='c'; message[2]='f'; 
-   int strx= strlen(useraddr);
-   strncpy(message+3,useraddr,strx);
-   while(fgets(message+strx+3,50,fp))
+     strcpy(message,"-cf"); strcpy(message+3,useraddr);
+   int strx= strlen(useraddr)+3;
+   while(fgets(message+strx,50,fp))
        //sc=sendto(so,message,53, 0, (struct sockaddr *) &mcast, sizeof(mcast));
-       while((n=sendto(sock,message,74, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
+       while((n=sendto(sock,message,51+strx, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
 }
 else{
 unsigned char fileround=argv[2][0] + argv[2][strlen(argv[2])-5] - argv[2][strlen(argv[2])-3];
@@ -161,10 +156,8 @@ if(strrchr(argv[0],'/'))argstr=strrchr(argv[0],'/')+1;
 if(strrchr(argv[0],'.'))argstr=strrchr(argv[0],'/');
 printf("%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do ",argstr," -F filename or ",argstr," -c commandname\n on another terminal or computer on the network.\n waiting...");
 FILE *fn[90]; 
-unsigned char fhash=0,hash0,fhashes[90];
-unsigned char index=0,previndex, files2write=0,k=0;
-unsigned char  diff=0;
- char fsub,ssub,m2;
+unsigned char index=0,previndex, files2write=0;
+ char *chead;
 int nextlen[90]; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
  while(1){
 mlen=sizeof(temp);
@@ -199,34 +192,28 @@ printf("%s %d\n","Finishing writing file", index);
 nextlen[index]=BUF_SIZ;}
 }
 else if(!strncmp(message,"-c",2)){
+chead= strrchr(message,'~');
+chead[0]='\0';
 if(!strncmp(message,"-cf",3)){
-printf("%s\n", strrchr(message,'~'));
-system(&message[22]);
+printf("%s:-%s", message+3,chead+1);
+system(chead+1);
 }
 else {
-printf("%s:\n", message+2);
-system(&message[22]);
+printf("%s:-%s\n", message+2,chead+1);
+system(chead+1);
 }}
 }
 else if(!files2write && !strncmp(message,"-c",2)){
+chead= strrchr(message,'~');
+chead[0]='\0';
 if(!strncmp(message,"-cf",3)){
-printf("%s:\n", message+2);
-system(&message[3]);
+printf("%s:~%s", message+3,chead+1);
+system(chead+1);
 }
 else {
-char *temp= strrchr(message,'~');
-temp[0]='\0';
-printf("%s:~%s\n", message+2,temp+1);
-system(temp+1);
+printf("%s:~%s\n", message+2,chead+1);
+system(chead+1);
 }
-/*
-  char *mystr= strstr(message, "-P");
-if(mystr){
-if(mystr[2]==' ')
- fprintf(stdout,"%s\n", mystr+3);
-else 
- fprintf(stdout, "%s\n", mystr+2);
- }*/
 }
 
 else  
