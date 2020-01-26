@@ -1,4 +1,6 @@
 #include <stdio.h> 
+#include <pwd.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -61,11 +63,23 @@ src.sin_addr.s_addr=htonl(INADDR_ANY);
 src.sin_port=htons(0);
 bind(sock, (struct sockaddr *) &src, sizeof(src));
 setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));
+uid_t user;
+user=getuid();
+struct passwd *user_p=getpwuid(user); 
+char *host= (char *)malloc(sizeof(char)*15);
+gethostname(host,255);
+
+char *useraddr= strcat(strcat(user_p->pw_name,"@"),host);
+useraddr=strcat(useraddr,"~");
+
 if(!strcmp(argv[1],"-c")){
-char *command=argv[1]; 
+char *command=(char *)malloc(sizeof(char)*100);
+strcpy(command,argv[1]); 
+   strncpy(command+2,useraddr,20); 
 for(i=2;i<argc && strcmp(argv[i],"-m"); i++) 
 command= strcat(strcat(command,argv[i])," "); 
- sc= sendto(sock,command, strlen(command)+1, 0, (struct sockaddr *) &mcast, sizeof(mcast));
+printf(command+20);
+ sc= sendto(sock,command, 100, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 if(sc==-1) printf("Unable to send, do group exist\n");
  }
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
@@ -76,9 +90,11 @@ if(!fp) {printf("%s\n","Unable to open file for reading (read permission).");
             exit(1);}
 if(!strcmp(argv[1],"-cf")){
    message[0]='-';message[1]='c'; message[2]='f'; 
-   while(fgets(message+3,50,fp))
+   int strx= strlen(useraddr);
+   strncpy(message+3,useraddr,strx);
+   while(fgets(message+strx+3,50,fp))
        //sc=sendto(so,message,53, 0, (struct sockaddr *) &mcast, sizeof(mcast));
-       while((n=sendto(sock,message,54, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
+       while((n=sendto(sock,message,74, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
 }
 else{
 unsigned char fileround=argv[2][0] + argv[2][strlen(argv[2])-5] - argv[2][strlen(argv[2])-3];
@@ -184,22 +200,24 @@ nextlen[index]=BUF_SIZ;}
 }
 else if(!strncmp(message,"-c",2)){
 if(!strncmp(message,"-cf",3)){
-printf("%s\n", &message[3]);
-system(&message[3]);
+printf("%s\n", strrchr(message,'~'));
+system(&message[22]);
 }
 else {
-printf("%s\n", &message[2]);
-system(&message[2]);
+printf("%s:\n", message+2);
+system(&message[22]);
 }}
 }
 else if(!files2write && !strncmp(message,"-c",2)){
 if(!strncmp(message,"-cf",3)){
-printf("%s\n", &message[3]);
+printf("%s:\n", message+2);
 system(&message[3]);
 }
 else {
-printf("%s\n", &message[2]);
-system(&message[2]);
+char *temp= strrchr(message,'~');
+temp[0]='\0';
+printf("%s:~%s\n", message+2,temp+1);
+system(temp+1);
 }
 /*
   char *mystr= strstr(message, "-P");
