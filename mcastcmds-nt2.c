@@ -192,7 +192,7 @@ printf("%s %d\n","Finishing writing file", index);
 nextlen[index]=BUF_SIZ;}
 }
 else if(!strncmp(message,"-c",2)){
-chead= strrchr(message,'~');
+chead= strchr(message,'~');
 chead[0]='\0';
 if(!strncmp(message,"-cf",3)){
 printf("%s:-%s", message+3,chead+1);
@@ -204,7 +204,7 @@ system(chead+1);
 }}
 }
 else if(!files2write && !strncmp(message,"-c",2)){
-chead= strrchr(message,'~');
+chead= strchr(message,'~');
 chead[0]='\0';
 if(!strncmp(message,"-cf",3)){
 printf("%s:~%s", message+3,chead+1);
