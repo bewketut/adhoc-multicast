@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <netdb.h>
-#define BUF_SIZ 899 
+#define BUF_SIZ 4096 
 #define MCASTBUF_SIZ (BUF_SIZ+1) 
 #define MCASTP 4020
 extern char *base256(int num,char *str);
