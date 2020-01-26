@@ -71,12 +71,12 @@ char *useraddr= strcat(strcat(user_p->pw_name,"@"),host);
 useraddr=strcat(useraddr,"~");
 
 if(!strcmp(argv[1],"-c")){
-char *command=(char *) malloc(sizeof(char)*100);
+char *command=(char *) malloc(sizeof(char)*400);
 strcpy(command,argv[1]); 
 strcpy(command+2,useraddr);
 for(i=2;i<argc && strcmp(argv[i],"-m"); i++) 
 command= strcat(strcat(command,argv[i])," "); 
- sc= sendto(sock,command, 100, 0, (struct sockaddr *) &mcast, sizeof(mcast));
+ sc= sendto(sock,command, 400, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 if(sc==-1) printf("Unable to send, do group exist\n");
  }
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
@@ -87,9 +87,9 @@ if(!fp) {printf("%s\n","Unable to open file for reading (read permission).");
 if(!strcmp(argv[1],"-cf")){
      strcpy(message,"-cf"); strcpy(message+3,useraddr);
    int strx= strlen(useraddr)+3;
-   while(fgets(message+strx,50,fp))
+   while(fgets(message+strx,400,fp))
        //sc=sendto(so,message,53, 0, (struct sockaddr *) &mcast, sizeof(mcast));
-       while((n=sendto(sock,message,51+strx, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
+       while((n=sendto(sock,message,400+strx, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
 }
 else{
 unsigned char fileround=argv[2][0] + argv[2][strlen(argv[2])-5] - argv[2][strlen(argv[2])-3];
