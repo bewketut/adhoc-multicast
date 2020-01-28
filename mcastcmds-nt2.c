@@ -37,6 +37,7 @@ printf("%s -m mcastAddr (using -235.234.232.213)(Receive mode)\n",argv[0]);
 return 0;
 }
 char *inetadr="235.234.232.213";
+int sendflag=0;
 for(i=1; i<argc; i++) 
 if(!strcmp(argv[i],"-m")){ inetadr= argv[i+1]; break;}
 mcastaddr.s_addr=inet_addr(inetadr);
@@ -53,11 +54,11 @@ mcast.sin_port=htons(MCASTP);
 	   inet_ntoa(mcastaddr));
     exit(1);
   }
-//sock=socket(AF_INET, SOCK_DGRAM,0);
-if(argc>2 && strcmp(argv[1],"-m")){
 if((sock=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 src.sin_family=AF_INET;
 src.sin_addr.s_addr=htonl(INADDR_ANY);
+//if(argc>2 && strcmp(argv[1],"-m")){
+if(argc>2 && strcmp(argv[1],"-m")){
 src.sin_port=htons(0);
 bind(sock, (struct sockaddr *) &src, sizeof(src));
 setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));
@@ -79,8 +80,10 @@ command= strcat(strcat(command,argv[i])," ");
  sc= sendto(sock,command, 400, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 if(sc==-1) printf("Unable to send, do group exist\n");
  }
+//sock=socket(AF_INET, SOCK_DGRAM,0);
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
  !strcmp(argv[1],"-cf")){
+sendlabel:
 fp = fopen(argv[2],"r");
 if(!fp) {printf("%s\n","Unable to open file for reading (read permission).");
             exit(1);}
@@ -137,18 +140,20 @@ remn[3]='f';
 while((n=sendto(sock,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 if(sc==-1) printf("Unable to send, do group exist\n");
 }
+if(sendflag) goto receivelabel;
  }
 }
 else {
-if((so=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
-temp.sin_family=AF_INET;
-temp.sin_addr.s_addr=htonl(INADDR_ANY);
-temp.sin_port=htons(MCASTP);
+//if((so=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
+//temp.sin_family=AF_INET;
+//temp.sin_addr.s_addr=htonl(INADDR_ANY);
+//temp.sin_port=htons(MCASTP);
 //if((sock=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
-bind(so, (struct sockaddr *) &temp, sizeof(temp));
+src.sin_port=htons(MCASTP);
+bind(sock, (struct sockaddr *) &src, sizeof(src));
 imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
 imr.imr_interface.s_addr= htonl(INADDR_ANY);
-i=setsockopt(so, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &imr, sizeof(struct ip_mreq));
+i=setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &imr, sizeof(struct ip_mreq));
 if(i < 0) {printf("Cannot join Multicast Group\n"); exit(0);}
 
 char *argstr= argv[0];
@@ -157,13 +162,14 @@ if(strrchr(argv[0],'.'))argstr=strrchr(argv[0],'/');
 printf("%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do ",argstr," -F filename or ",argstr," -c commandname\n on another terminal or computer on the network.\n waiting...");
 FILE *fn[90]; 
 unsigned char index=0,previndex, files2write=0;
- char *chead,*filen,y,x,*cm;
+ char *chead,*filen,*filetemp,*filetemp2,*filetemp3,y,x,*cm;
 int nextlen[90],k=0,no=0,count=0; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
 filen= (char *)malloc(sizeof(char)*20);
  while(1){
+receivelabel:
 if(!files2write && !no){
 printf("%s","Currently no files are being received. Send a file instead? (y/n/N-no for the session)\n");
- y= getchar(); printf("%c",y);
+ y= getchar();  
 if(y=='N') no=1;
  if (y=='y'){
  system("ls");
@@ -171,11 +177,17 @@ printf("Please write a filename:");
 fgets(filen,30,stdin);
 fgets(filen,30,stdin);
 strrchr(filen,'\n')[0]='\0';
-printf("%s\n",filen);
-  cm= strcat(argv[0]," -F ");
-        cm= strcat(cm,filen);cm=strcat(cm," -m ");cm=strcat(cm,inetadr);
+//printf("%s\n",filen);
+argv[1]="-F"; argv[2]=filen;
+sendflag=1;
+goto sendlabel;
+/*
+  filetemp= strcat(argv[0]," -F ");
+        filetemp2= strcat(filetemp,filen);filetemp3=strcat(filetemp2," -m ");
+cm=strcat(filetemp3,inetadr);
 printf("%s\n",cm);
  system(cm);
+cm=NULL;filetemp=NULL;filetemp2=NULL; filetemp3=NULL;
 
 printf("continue sending files?(y/n)");
  x= getchar();
@@ -184,24 +196,18 @@ while(fgets(filen,30,stdin)){
 if(x=='n')
  break;
 printf("%s\n",filen);
-  cm= strcat(argv[0]," -F ");
-        cm= strcat(cm,filen);cm=strcat(cm," -m ");cm=strcat(cm,inetadr);
+filetemp= strcat(argv[0]," -F ");
+        filetemp2= strcat(filetemp,filen);filetemp3=strcat(filetemp2," -m ");
+cm=strcat(filetemp3,inetadr);
 printf("%s\n",cm);
  system(cm);
+cm=NULL;filetemp=NULL;filetemp2=NULL; filetemp3=NULL;
 
 printf("Please write a filename:");
-} 
-//if(!strcmp(filen," "))continue;
-printf("%s\n",filen);
-  cm= strcat(argv[0]," -F ");
-   
-        cm= strcat(cm,filen);cm=strcat(cm," -m ");cm=strcat(cm,inetadr);
-printf("%s\n",cm);
- system(cm);
-}
-}
-mlen=sizeof(temp);
-while((i=recvfrom(so, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &temp , &mlen))!=0)
+} */
+}}
+mlen=sizeof(src);
+while((i=recvfrom(sock, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0)
 if(i!=-1) break;
 
 if(!strncmp(message+1,"S0F!",4)){ 
