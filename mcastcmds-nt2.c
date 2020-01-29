@@ -57,10 +57,9 @@ mcast.sin_port=htons(MCASTP);
 if((sock=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 src.sin_family=AF_INET;
 src.sin_addr.s_addr=htonl(INADDR_ANY);
-//if(argc>2 && strcmp(argv[1],"-m")){
-if(argc>2 && strcmp(argv[1],"-m")){
-src.sin_port=htons(0);
+src.sin_port=htons(MCASTP);
 bind(sock, (struct sockaddr *) &src, sizeof(src));
+if(argc>2 && strcmp(argv[1],"-m")){
 setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));
 uid_t user;
 user=getuid();
@@ -149,8 +148,8 @@ else {
 //temp.sin_addr.s_addr=htonl(INADDR_ANY);
 //temp.sin_port=htons(MCASTP);
 //if((sock=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
-src.sin_port=htons(MCASTP);
-bind(sock, (struct sockaddr *) &src, sizeof(src));
+//src.sin_port=htons(MCASTP);
+//bind(sock, (struct sockaddr *) &src, sizeof(src));
 imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
 imr.imr_interface.s_addr= htonl(INADDR_ANY);
 i=setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &imr, sizeof(struct ip_mreq));
