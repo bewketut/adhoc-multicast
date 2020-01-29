@@ -207,9 +207,6 @@ printf("Please write a filename:");
 } */
 }}
  while(1){
-//if(no==2)
-//fgets(filen,30,stdin);
-
 mlen=sizeof(src);
 while((i=recvfrom(sock, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0)
 if(i!=-1) break;
@@ -264,7 +261,6 @@ printf("%s:~%s\n", message+2,chead+1);
 system(chead+1);
 }
 }
-
 else  
  fwrite(message,1,nextlen[index], stdout);
 if(!files2write){if(no==1)no=0; goto receivelabel;}
