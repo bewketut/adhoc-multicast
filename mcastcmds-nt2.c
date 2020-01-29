@@ -165,15 +165,16 @@ unsigned char index=0,previndex, files2write=0;
  char *chead,*filen,*filetemp,*filetemp2,*filetemp3,y,x,*cm;
 int nextlen[90],k=0,no=0,count=0; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
 filen= (char *)malloc(sizeof(char)*20);
- while(1){
 receivelabel:
 if(!files2write && !no){
-printf("%s","Currently no files are being received. Send a file instead? (y/n/N-no for the session)\n");
+printf("%s","Currently no files are being received. Send a file instead? (y/n/N)");
  y= getchar();  
-if(y=='N') no=1;
+if(y=='n')no=1;
+if(y=='N')no=2;
  if (y=='y'){
  system("ls");
 printf("Please write a filename:");
+//if(!sendflag)
 fgets(filen,30,stdin);
 fgets(filen,30,stdin);
 strrchr(filen,'\n')[0]='\0';
@@ -206,17 +207,20 @@ cm=NULL;filetemp=NULL;filetemp2=NULL; filetemp3=NULL;
 printf("Please write a filename:");
 } */
 }}
+ while(1){
+//if(no==2)
+//fgets(filen,30,stdin);
+
 mlen=sizeof(src);
 while((i=recvfrom(sock, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0)
 if(i!=-1) break;
-
 if(!strncmp(message+1,"S0F!",4)){ 
 index=((unsigned char)message[0])%90;
 if(fn[index]==NULL)
 fn[index]= fopen(message+5,"w"); files2write++;
 printf("opening file %s for writing %d\n",message+5,index);
 }
-else if(!strncmp(message+1,"EOL",3)){
+if(!strncmp(message+1,"EOL",3)){
 index=((unsigned char)message[0])%90;
  nextlen[index]=((unsigned char)message[4])*256 + ((unsigned char)message[5]) ;
 }
@@ -264,6 +268,7 @@ system(chead+1);
 
 else  
  fwrite(message,1,nextlen[index], stdout);
+if(!files2write){if(no==1)no=0; goto receivelabel;}
 
 }
 //fclose(fn[index]); fn[index]=NULL;
