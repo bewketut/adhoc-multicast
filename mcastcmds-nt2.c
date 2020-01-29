@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <netdb.h>
-#define BUF_SIZ 4096 
+#define BUF_SIZ 1023 
 #define MCASTBUF_SIZ (BUF_SIZ+1) 
 #define MCASTP 4020
 extern char *base256(int num,char *str);
@@ -133,7 +133,6 @@ remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='L'; remn[6]='\0';
 while((sc=sendto(sock,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
 if(sc!=-1) break;
 buffer[i*BUF_SIZ+MCASTBUF_SIZ-1]=filehash3;
-//buffer[i*BUF_SIZ+rem]=filehash3;
 while((n=sendto(sock,buffer+i*BUF_SIZ,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
 remn[3]='f'; 
 while((n=sendto(sock,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
@@ -143,13 +142,6 @@ if(sendflag) goto receivelabel;
  }
 }
 else {
-//if((so=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
-//temp.sin_family=AF_INET;
-//temp.sin_addr.s_addr=htonl(INADDR_ANY);
-//temp.sin_port=htons(MCASTP);
-//if((sock=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
-//src.sin_port=htons(MCASTP);
-//bind(sock, (struct sockaddr *) &src, sizeof(src));
 imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
 imr.imr_interface.s_addr= htonl(INADDR_ANY);
 i=setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &imr, sizeof(struct ip_mreq));
@@ -160,24 +152,22 @@ if(strrchr(argv[0],'/'))argstr=strrchr(argv[0],'/')+1;
 if(strrchr(argv[0],'.'))argstr=strrchr(argv[0],'/');
 printf("%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do ",argstr," -F filename or ",argstr," -c commandname\n on another terminal or computer on the network.\n waiting...");
 FILE *fn[90]; 
-unsigned char index=0,previndex, files2write=0;
- char *chead,*filen,*filetemp,*filetemp2,*filetemp3,y,x,*cm;
-int nextlen[90],k=0,no=0,count=0; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
+unsigned char index=0,previndex;
+ char *chead,*filen,y,x,*cm;
+int nextlen[90],k=0,no=0,count=0, files2write=0; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
 filen= (char *)malloc(sizeof(char)*20);
 receivelabel:
 if(!files2write && !no){
-printf("%s","Currently no files are being received. Send a file instead? (y/n/N)");
+printf("%s","There are no files are being received. Send a file instead? (y/n/N)");
  y= getchar();  
 if(y=='n')no=1;
 if(y=='N')no=2;
  if (y=='y'){
  system("ls");
 printf("Please write a filename:");
-//if(!sendflag)
 fgets(filen,30,stdin);
 fgets(filen,30,stdin);
 strrchr(filen,'\n')[0]='\0';
-//printf("%s\n",filen);
 argv[1]="-F"; argv[2]=filen;
 sendflag=1;
 goto sendlabel;
@@ -216,7 +206,7 @@ if(fn[index]==NULL)
 fn[index]= fopen(message+5,"w"); files2write++;
 printf("opening file %s for writing %d\n",message+5,index);
 }
-if(!strncmp(message+1,"EOL",3)){
+else if(!strncmp(message+1,"EOL",3)){
 index=((unsigned char)message[0])%90;
  nextlen[index]=((unsigned char)message[4])*256 + ((unsigned char)message[5]) ;
 }
@@ -225,8 +215,8 @@ index=((unsigned char)message[0])%90;
 if(files2write && fn[index]!=NULL){fclose(fn[index]);
 fn[index]=NULL;
 files2write--;
-printf("%s %d\n","Finished writing", index);
-} 
+printf("%s %d\n","Finished writing", index); } 
+if(!files2write){if(no==1)no=0; goto receivelabel;}
 }
 else if(files2write){
 index=(unsigned char) message[MCASTBUF_SIZ-1];
@@ -260,11 +250,12 @@ else {
 printf("%s:~%s\n", message+2,chead+1);
 system(chead+1);
 }
+if(!files2write){if(no==1)no=0; goto receivelabel;}
 }
 else  
  fwrite(message,1,nextlen[index], stdout);
-if(!files2write){if(no==1)no=0; goto receivelabel;}
 
+if(!files2write){if(no==1)no=0; goto receivelabel;}
 }
 //fclose(fn[index]); fn[index]=NULL;
 //if(getchar()==EOF) 
