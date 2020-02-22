@@ -90,13 +90,11 @@ if(!strcmp(argv[1],"-cf")){
      strcpy(message,"-cf"); strcpy(message+3,useraddr);
    int strx= strlen(useraddr)+3;
    while(fgets(message+strx,400,fp))
-       //sc=sendto(so,message,53, 0, (struct sockaddr *) &mcast, sizeof(mcast));
        while((n=sendto(sock,message,400+strx, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
 }
 else{
 unsigned char fileround=argv[2][0] + argv[2][strlen(argv[2])-5] - argv[2][strlen(argv[2])-3];
 unsigned char filehash3= fileround%90;  
-//printf("filehash: %d%s\n",filehash3,argv[2]);
 unsigned char filehash= filehash3;
 char *filename= (char *) malloc(sizeof(char)*300);
 if(!strcmp(argv[1],"-F")) { filename[1]='S'; filename[2]='0'; filename[3]='F';filename[4]='!';}
@@ -115,9 +113,6 @@ int numr;
 sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)); 
 if(sc==-1) printf("Unable to send, do group exist\n");
 
-//int ntimes0=ntimes*3.2;
-//for(i=0; i<ntimes0; i++)
-//while((numr=fread(buffer,sizeof(char),size,fp))!=0);
 
 for(i=0;i< ntimes;i++){
 do {numr=fread(buffer,sizeof(char),size,fp);} while(numr!=0);
@@ -157,10 +152,9 @@ unsigned char index=0,previndex;
 int nextlen[90],k=0,no=0,count=0, files2write=0; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
 filen= (char *)malloc(sizeof(char)*20);
 receivelabel:
-if(!files2write && !no){
-printf("%s","There are no files are being received. Send a file instead? (y/n/N)");
- y= getchar();  
-if(y=='n')no=1;
+if(!no){
+printf("There are no files are being received.Send a file instead?(y/n/N)");
+while((x= getchar())!='\n')y=x;  
 if(y=='N')no=2;
  if (y=='y'){
  system("ls");
@@ -171,33 +165,12 @@ strrchr(filen,'\n')[0]='\0';
 argv[1]="-F"; argv[2]=filen;
 sendflag=1;
 goto sendlabel;
-/*
-  filetemp= strcat(argv[0]," -F ");
-        filetemp2= strcat(filetemp,filen);filetemp3=strcat(filetemp2," -m ");
-cm=strcat(filetemp3,inetadr);
-printf("%s\n",cm);
- system(cm);
-cm=NULL;filetemp=NULL;filetemp2=NULL; filetemp3=NULL;
-
-printf("continue sending files?(y/n)");
- x= getchar();
-while(fgets(filen,30,stdin)){
-*filen=strrchr(filen,'\n')[1];
-if(x=='n')
- break;
-printf("%s\n",filen);
-filetemp= strcat(argv[0]," -F ");
-        filetemp2= strcat(filetemp,filen);filetemp3=strcat(filetemp2," -m ");
-cm=strcat(filetemp3,inetadr);
-printf("%s\n",cm);
- system(cm);
-cm=NULL;filetemp=NULL;filetemp2=NULL; filetemp3=NULL;
-
-printf("Please write a filename:");
-} */
-}}
+}
+}
+if(count==1) count--;
  while(1){
 mlen=sizeof(src);
+if(!files2write && count==1) goto receivelabel;
 while((i=recvfrom(sock, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0)
 if(i!=-1) break;
 if(!strncmp(message+1,"S0F!",4)){ 
@@ -216,7 +189,7 @@ if(files2write && fn[index]!=NULL){fclose(fn[index]);
 fn[index]=NULL;
 files2write--;
 printf("%s %d\n","Finished writing", index); } 
-if(!files2write){if(no==1)no=0; goto receivelabel;}
+count++;
 }
 else if(files2write){
 index=(unsigned char) message[MCASTBUF_SIZ-1];
@@ -250,12 +223,10 @@ else {
 printf("%s:~%s\n", message+2,chead+1);
 system(chead+1);
 }
-if(!files2write){if(no==1)no=0; goto receivelabel;}
 }
 else  
  fwrite(message,1,nextlen[index], stdout);
 
-if(!files2write){if(no==1)no=0; goto receivelabel;}
 }
 //fclose(fn[index]); fn[index]=NULL;
 //if(getchar()==EOF) 
