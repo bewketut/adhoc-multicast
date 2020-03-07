@@ -190,7 +190,7 @@ if(files2write && fn[index]!=NULL){fclose(fn[index]);
 fn[index]=NULL;
 files2write--;
 printf("%s %d\n","Finished writing", index); } 
-count=1;
+count++;
 }
 else if(files2write){
 index=(unsigned char) message[MCASTBUF_SIZ-1];
