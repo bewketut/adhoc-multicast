@@ -153,13 +153,14 @@ int nextlen[90],k=0,recvonly=0,count=0, files2write=0; for(i=0;i<90;i++)nextlen[
 filen= (char *)malloc(sizeof(char)*20);
 receivelabel:
 if(!recvonly){
-printf("Receive only (R)/Recieve for now (n)/ Send file now(y)?(y/n/R)");
+printf("Receive only (R)/Recieve for now (r)/Send file now(s)/quit(q)?(R/r/s/q)");
 while((x= getchar())!='\n')y=x;  
 if(y=='R')recvonly=2;
- if (y=='y'){
+if(y=='q'|| y=='t') return 0;
+ if (y=='s'){
  system("ls");
 printf("Please write a filename:");
-fgets(filen,30,stdin);
+//fgets(filen,30,stdin);
 fgets(filen,30,stdin);
 strrchr(filen,'\n')[0]='\0';
 argv[1]="-F"; argv[2]=filen;
