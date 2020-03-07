@@ -149,13 +149,13 @@ printf("%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do
 FILE *fn[90]; 
 unsigned char index=0,previndex;
  char *chead,*filen,y,x,*cm;
-int nextlen[90],k=0,no=0,count=0, files2write=0; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
+int nextlen[90],k=0,recvonly=0,count=0, files2write=0; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
 filen= (char *)malloc(sizeof(char)*20);
 receivelabel:
-if(!no){
+if(!recvonly){
 printf("Receive only (R)/Recieve for now (n)/ Send file now(y)?(y/n/R)");
 while((x= getchar())!='\n')y=x;  
-if(y=='R')no=2;
+if(y=='R')recvonly=2;
  if (y=='y'){
  system("ls");
 printf("Please write a filename:");
