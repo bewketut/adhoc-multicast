@@ -156,7 +156,6 @@ if(!recvonly){
 printf("Receive only (R)/Recieve for now (r)/Send file now(s)/quit(q)?(R/r/s/q)");
 while((x= getchar())!='\n')y=x;  
 if(y=='R')recvonly=2;
-if(y=='q'|| y=='t') return 0;
  if (y=='s'){
  system("ls");
 printf("Please write a filename:");
@@ -167,6 +166,7 @@ argv[1]="-F"; argv[2]=filen;
 sendflag=1;
 goto sendlabel;
 }
+if(y=='q'|| y=='t') return 0;
 }
 if(count==1) count--;
  while(1){
