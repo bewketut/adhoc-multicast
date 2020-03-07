@@ -21,7 +21,8 @@ obj-m += xt_MCAST.o #	compat_xtables.o
 all: lib 
 	make -C	/lib/modules/`uname -r`/build M=`pwd`
 mcmds: mcastcmds-nt2.c
-	${CL} -o mcastcmds mcastcmds-nt2.c
+	${CCLD} -o mcastcmds mcastcmds-nt2.c
+	${CL} -o mcastcmdsfast mcastcmds-nt2.c
 clean:
 	make -C /lib/modules/`uname -r`/build M=`pwd` clean
 	rm -rf libxt_MCAST.so

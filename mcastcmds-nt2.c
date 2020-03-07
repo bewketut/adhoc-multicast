@@ -153,9 +153,9 @@ int nextlen[90],k=0,no=0,count=0, files2write=0; for(i=0;i<90;i++)nextlen[i]=BUF
 filen= (char *)malloc(sizeof(char)*20);
 receivelabel:
 if(!no){
-printf("There are no files are being received.Send a file instead?(y/n/N)");
+printf("Receive only (R)/Recieve for now (n)/ Send file now(y)?(y/n/R)");
 while((x= getchar())!='\n')y=x;  
-if(y=='N')no=2;
+if(y=='R')no=2;
  if (y=='y'){
  system("ls");
 printf("Please write a filename:");
@@ -189,7 +189,7 @@ if(files2write && fn[index]!=NULL){fclose(fn[index]);
 fn[index]=NULL;
 files2write--;
 printf("%s %d\n","Finished writing", index); } 
-count++;
+count=1;
 }
 else if(files2write){
 index=(unsigned char) message[MCASTBUF_SIZ-1];
