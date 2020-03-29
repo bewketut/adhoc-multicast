@@ -113,6 +113,7 @@ int numr;
 sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)); 
 if(sc==-1) printf("Unable to send, do group exist\n");
 
+do {numr=fread(buffer,sizeof(char),size,fp);} while(numr!=0);
 for(i=0;i< ntimes;i++){
 do {numr=fread(buffer,sizeof(char),size,fp);} while(numr!=0);
   c=buffer[i*BUF_SIZ+MCASTBUF_SIZ-1];
@@ -120,7 +121,6 @@ buffer[i*BUF_SIZ+MCASTBUF_SIZ-1]=filehash3;
 while((n=sendto(sock,buffer+i*BUF_SIZ,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 buffer[i*BUF_SIZ+MCASTBUF_SIZ-1]=c;
 do {numr=fread(buffer,sizeof(char),size,fp);} while(numr!=0);
-
 } 
 do {numr=fread(buffer,sizeof(char),size,fp);} while (numr!=0);
 fclose(fp);
