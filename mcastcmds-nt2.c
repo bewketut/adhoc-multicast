@@ -10,7 +10,7 @@
 #include <netdb.h>
 #define BUF_SIZ 899 
 #define MCASTBUF_SIZ (BUF_SIZ+1) 
-#define MCASTP 4020
+#define MCASTP 40120
 extern char *base256(int num,char *str);
 extern int tobase10(char *str);
 /*
@@ -20,9 +20,9 @@ struct srcmutexfiles {
 }; typedef struct srcmutexfiles mcastsrcfile;
 */
 int main(int argc, char **argv){
-struct sockaddr_in src, temp,mcast;
+struct sockaddr_in src, temp,temp2,mcast;
 struct in_addr mcastaddr;
-int so,sc,i,sock,n;
+int so,so2,sc,i,sock,n;
 unsigned int ttl,mlen;
 char message[MCASTBUF_SIZ];
 unsigned char c,d;
@@ -148,7 +148,7 @@ if(strrchr(argv[0],'/'))argstr=strrchr(argv[0],'/')+1;
 if(strrchr(argv[0],'.'))argstr=strrchr(argv[0],'/');
 printf("%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do ",argstr," -F filename or ",argstr," -c commandname\n on another terminal or computer on the network.\n waiting...");
 FILE *fn[90]; 
-unsigned char index=0,previndex;
+unsigned char index=0,prev,fflag;
  char *chead,*filen,y,x,*cm;
 int nextlen[90],k=0,recvonly=0,count=0, files2write=0; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
 filen= (char *)malloc(sizeof(char)*20);
@@ -170,6 +170,16 @@ goto sendlabel;
 if(y=='q'|| y=='t') return 0;
 }
 if(count==1) count--;
+ 
+if((so=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
+if((so2=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
+temp2.sin_family=temp.sin_family=AF_INET;
+temp.sin_addr.s_addr=inet_addr("127.0.0.2");
+temp2.sin_addr.s_addr=inet_addr("127.0.0.3");
+temp.sin_port=htons(MCASTP+1);
+temp2.sin_port=htons(MCASTP+2);
+bind(so, (struct sockaddr *) &temp, sizeof(temp));
+bind(so2, (struct sockaddr *) &temp2, sizeof(temp2));
  while(1){
 mlen=sizeof(src);
 if(!files2write && count==1) goto receivelabel;
@@ -180,6 +190,8 @@ index=((unsigned char)message[0])%90;
 if(fn[index]==NULL)
 fn[index]= fopen(message+5,"w"); files2write++;
 printf("opening file %s for writing %d\n",message+5,index);
+if(files2write> 0) system("vlc udp://127.0.0.2:40121&");
+if(files2write> 1) system("vlc udp://127.0.0.3:40122&");
 }
 else if(!strncmp(message+1,"EOL",3)){
 index=((unsigned char)message[0])%90;
@@ -194,10 +206,14 @@ printf("%s %d\n","Finished writing", index); }
 count++;
 }
 else if(files2write){
+prev=index;
 index=(unsigned char) message[MCASTBUF_SIZ-1];
 message[MCASTBUF_SIZ-1]=0;
 if(index>0){
 fwrite(message,1,nextlen[index],fn[index]);
+if(index==prev)
+       sendto(so,message,nextlen[index], 0, (struct sockaddr *) &temp, sizeof(temp)); 
+else sendto(so2,message,nextlen[index], 0, (struct sockaddr *) &temp2, sizeof(temp2)); 
 if(nextlen[index]!=BUF_SIZ){
 printf("%s %d\n","Finishing writing file", index);
 nextlen[index]=BUF_SIZ;}
