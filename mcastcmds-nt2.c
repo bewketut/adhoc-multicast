@@ -11,7 +11,7 @@
 #define BUF_SIZ 899 
 #define MCASTBUF_SIZ (BUF_SIZ+1) 
 #define MCASTP 40120
-#define NMUTEXFILES  250
+#define NMUTEXFILES  155
 extern char *base256(int num,char *str);
 extern int tobase10(char *str);
 /*
@@ -155,10 +155,10 @@ int nextlen[NMUTEXFILES],k=0,recvonly=0,count=0, files2write=0; for(i=0;i<NMUTEX
 filen= (char *)malloc(sizeof(char)*20);
 receivelabel:
 if(!recvonly){
-printf("Receive only (R)/Recieve for now (r)/Send file now(s)/quit(q)?(R/r/s/q)");
+printf("Receive (r)/Recieve for now (-)/Send file(f)/quit(q)?(r/-/f/q)");
 while((x= getchar())!='\n')y=x;  
-if(y=='R')recvonly=2;
- if (y=='s'){
+if(y=='r')recvonly=2;
+ if (y=='f'){
  system("ls");
 printf("Please write a filename:");
 //fgets(filen,30,stdin);
@@ -170,17 +170,20 @@ goto sendlabel;
 }
 if(y=='q'|| y=='t') return 0;
 }
-if(count==1) count--;
  
 if((so=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 if((so2=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 temp2.sin_family=temp.sin_family=AF_INET;
 temp.sin_addr.s_addr=inet_addr("127.0.0.2");
 temp2.sin_addr.s_addr=inet_addr("127.0.0.3");
-temp.sin_port=htons(MCASTP+1);
+temp.sin_port=htons(MCASTP+count);
 temp2.sin_port=htons(MCASTP+2);
-bind(so, (struct sockaddr *) &temp, sizeof(temp));
-bind(so2, (struct sockaddr *) &temp2, sizeof(temp2));
+//if(count== 1) 
+//concat(concat("vlc",inetadr),":40121"))
+ 
+//else if(files2write> 0) system("vlc udp://127.0.0.3:40122&");
+
+if(count==1) count--;
  while(1){
 mlen=sizeof(src);
 if(!files2write && count==1) goto receivelabel;
@@ -191,8 +194,9 @@ index=((unsigned char)message[0])%NMUTEXFILES;
 if(fn[index]==NULL)
 fn[index]= fopen(message+5,"w"); files2write++;
 printf("opening file %s for writing %d\n",message+5,index);
-if(files2write> 0) system("vlc udp://127.0.0.2:40121&");
-if(files2write> 1) system("vlc udp://127.0.0.3:40122&");
+if(files2write>0)
+system("vlc udp://127.0.0.2:40121&");
+else if(files2write> 1) system("vlc udp://127.0.0.3:40122&");
 }
 else if(!strncmp(message+1,"EOL",3)){
 index=((unsigned char)message[0])%NMUTEXFILES;
@@ -213,8 +217,10 @@ message[MCASTBUF_SIZ-1]=0;
 if(index>0){
 fwrite(message,1,nextlen[index],fn[index]);
 if(index==prev)
-       sendto(so,message,nextlen[index], 0, (struct sockaddr *) &temp, sizeof(temp)); 
-else sendto(so2,message,nextlen[index], 0, (struct sockaddr *) &temp2, sizeof(temp2)); 
+sendto(so,message,BUF_SIZ, 0, (struct sockaddr *) &temp, sizeof(temp));
+     //  write(so,message,nextlen[index]); 
+else //write(so2,message,nextlen[index]); 
+sendto(so2,message,BUF_SIZ, 0, (struct sockaddr *) &temp2, sizeof(temp2));
 if(nextlen[index]!=BUF_SIZ){
 printf("%s %d\n","Finishing writing file", index);
 nextlen[index]=BUF_SIZ;}
