@@ -11,6 +11,7 @@
 #define BUF_SIZ 899 
 #define MCASTBUF_SIZ (BUF_SIZ+1) 
 #define MCASTP 40120
+#define NMUTEXFILES  250
 extern char *base256(int num,char *str);
 extern int tobase10(char *str);
 /*
@@ -94,7 +95,7 @@ if(!strcmp(argv[1],"-cf")){
 }
 else{
 unsigned char fileround=argv[2][0] + argv[2][strlen(argv[2])-5] - argv[2][strlen(argv[2])-3];
-unsigned char filehash3= fileround%90;  
+unsigned char filehash3= fileround%NMUTEXFILES;  
 unsigned char filehash= filehash3;
 char *filename= (char *) malloc(sizeof(char)*300);
 if(!strcmp(argv[1],"-F")) { filename[1]='S'; filename[2]='0'; filename[3]='F';filename[4]='!';}
@@ -147,10 +148,10 @@ char *argstr= argv[0];
 if(strrchr(argv[0],'/'))argstr=strrchr(argv[0],'/')+1;
 if(strrchr(argv[0],'.'))argstr=strrchr(argv[0],'/');
 printf("%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do ",argstr," -F filename or ",argstr," -c commandname\n on another terminal or computer on the network.\n waiting...");
-FILE *fn[90]; 
+FILE *fn[NMUTEXFILES]; 
 unsigned char index=0,prev,fflag;
  char *chead,*filen,y,x,*cm;
-int nextlen[90],k=0,recvonly=0,count=0, files2write=0; for(i=0;i<90;i++)nextlen[i]=BUF_SIZ;
+int nextlen[NMUTEXFILES],k=0,recvonly=0,count=0, files2write=0; for(i=0;i<NMUTEXFILES;i++)nextlen[i]=BUF_SIZ;
 filen= (char *)malloc(sizeof(char)*20);
 receivelabel:
 if(!recvonly){
@@ -186,7 +187,7 @@ if(!files2write && count==1) goto receivelabel;
 while((i=recvfrom(sock, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0)
 if(i!=-1) break;
 if(!strncmp(message+1,"S0F!",4)){ 
-index=((unsigned char)message[0])%90;
+index=((unsigned char)message[0])%NMUTEXFILES;
 if(fn[index]==NULL)
 fn[index]= fopen(message+5,"w"); files2write++;
 printf("opening file %s for writing %d\n",message+5,index);
@@ -194,11 +195,11 @@ if(files2write> 0) system("vlc udp://127.0.0.2:40121&");
 if(files2write> 1) system("vlc udp://127.0.0.3:40122&");
 }
 else if(!strncmp(message+1,"EOL",3)){
-index=((unsigned char)message[0])%90;
+index=((unsigned char)message[0])%NMUTEXFILES;
  nextlen[index]=((unsigned char)message[4])*256 + ((unsigned char)message[5]) ;
 }
 else if(!strncmp(message+1,"EOf",3)){
-index=((unsigned char)message[0])%90;
+index=((unsigned char)message[0])%NMUTEXFILES;
 if(files2write && fn[index]!=NULL){fclose(fn[index]);
 fn[index]=NULL;
 files2write--;
