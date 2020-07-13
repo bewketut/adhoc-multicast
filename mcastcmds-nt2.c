@@ -76,7 +76,7 @@ if(!strcmp(argv[1],"-c")){
 char *command=(char *) malloc(sizeof(char)*400);
 strcpy(command,argv[1]); 
 strcpy(command+2,useraddr);
-command=strcat(command,argv[2]);
+command= strcat(strcat(command,argv[2])," "); 
 for(i=3;i<argc && strcmp(argv[i],"-m"); i++) 
 command= strcat(strcat(command,argv[i])," "); 
  sc= sendto(sock,command, 400, 0, (struct sockaddr *) &mcast, sizeof(mcast));
