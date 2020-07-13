@@ -158,9 +158,9 @@ filen= (char *)malloc(sizeof(char)*20);
 cwdir=getcwd(cwdir,40);
 receivelabel:
 if(!recvonly){
-printf("Receive (r)/Send command(x)/Recieve for now (-)/Send file(f)/quit(q)?(r/-/f/q)");
+printf("Receive (R)/Send command(x)/Recieve for now (-)/Send file(f)/quit(q)?(r/-/f/q)");
 while((x= getchar())!='\n')y=x;  
-if(y=='r')recvonly=2;
+if(y=='R')recvonly=2;
  if (y=='f' || y=='x'){
  system("ls");
 if(y=='f')
