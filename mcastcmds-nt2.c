@@ -11,7 +11,7 @@
 #define BUF_SIZ 899 
 #define MCASTBUF_SIZ (BUF_SIZ+1) 
 #define MCASTP 40120
-#define NMUTEXFILES  155
+#define NMUTEXFILES  256
 extern char *base256(int num,char *str);
 extern int tobase10(char *str);
 /*
@@ -153,7 +153,7 @@ FILE *fn[NMUTEXFILES];
 unsigned char index=0,prev,fflag;
  char *chead,*filen,y,x,*cm,*cwdir= (char *) malloc(sizeof(char)*40);
 char *fatserv;
-int nextlen[NMUTEXFILES],k=0,recvonly=0,count=0, files2write=0; for(i=0;i<NMUTEXFILES;i++)nextlen[i]=BUF_SIZ;
+int nextlen[NMUTEXFILES],k=0,recvonly=0,count=0, files2write=0; for(i=0;i<NMUTEXFILES;i++){nextlen[i]=BUF_SIZ; fn[i]=NULL;}
 filen= (char *)malloc(sizeof(char)*20);
 cwdir=getcwd(cwdir,40);
 receivelabel:
@@ -197,11 +197,12 @@ if(!files2write && count==1) goto receivelabel;
 while((i=recvfrom(sock, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0)
 if(i!=-1) break;
 if(!strncmp(message+1,"S0F!",4)){ 
-index=((unsigned char)message[0])%NMUTEXFILES;
+index=(NMUTEXFILES-((unsigned char)message[0]))%NMUTEXFILES;
 if(fn[index]==NULL){
 //if(strrchr(message+5,'/')) fatserv=strrchr(message+5,'/')+1;
 //else fatserv=message+5;
-fn[index]= fopen(message+5,"w");} 
+fn[index]= fopen(message+5,"w");
+} 
 files2write++;
 printf("opening file %s for writing %d\n",message+5,index);
 //if(files2write>0)
@@ -209,11 +210,11 @@ printf("opening file %s for writing %d\n",message+5,index);
 //else if(files2write> 1) system("vlc udp://127.0.0.3:40122&");
 }
 else if(!strncmp(message+1,"EOL",3)){
-index=((unsigned char)message[0])%NMUTEXFILES;
+index=(NMUTEXFILES-((unsigned char)message[0]))%NMUTEXFILES;
  nextlen[index]=((unsigned char)message[4])*256 + ((unsigned char)message[5]) ;
 }
 else if(!strncmp(message+1,"EOf",3)){
-index=((unsigned char)message[0])%NMUTEXFILES;
+index=(NMUTEXFILES-(unsigned char)message[0])%NMUTEXFILES;
 if(files2write && fn[index]!=NULL){fclose(fn[index]);
 fn[index]=NULL;
 files2write--;
@@ -222,7 +223,7 @@ count++;
 }
 else if(files2write){
 prev=index;
-index=(unsigned char) message[MCASTBUF_SIZ-1];
+index=(NMUTEXFILES-(unsigned char) message[MCASTBUF_SIZ-1])%NMUTEXFILES;
 message[MCASTBUF_SIZ-1]=0;
 if(index>0){
 fwrite(message,1,nextlen[index],fn[index]);
@@ -241,7 +242,7 @@ chead[0]='\0';
 if(!strncmp(message,"-cf",3))
 printf("%s:-%s", message+3,chead+1);
 else printf("%s:-%s\n", message+2,chead+1);
-if(strchr(chead+1,'/'))
+if(strchr(chead+1,'/')&& !strstr(chead+1,"//"))
 sendto(sock,"Access is limited to the program folder ('/' forbidden)\n_no_command_executed!!\n",85, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 else {
 if(strstr(chead+1,"cd ..")) system(strcat("cd ",cwdir));
@@ -255,7 +256,7 @@ if(!strncmp(message,"-cf",3))
 printf("%s:~%s", message+3,chead+1);
 else 
 printf("%s:~%s\n", message+2,chead+1);
-if(strchr(chead+1,'/'))
+if(strchr(chead+1,'/')&& !strstr(chead+1,"//"))
 sendto(sock,"Access is limited to the program folder ('/' forbidden)\n_no_command_executed!!\n",85, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 else {
 if(strstr(chead+1,"cd ..")) system(strcat("cd ",cwdir));
