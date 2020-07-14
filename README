@@ -53,5 +53,5 @@ idea can mention me and they should be more than capable to build cleaner applic
 androids.
 example usage:
 --------------
-(e.g. usage first stream to your network via vlc on the commandline as: vlc file.vid --sout '#rtp{mux=ts,dst=225.224.224.223}'
-then use mcastcmds on the network as: mcastcmds -c vlc rtp://225.224.224.223 -m mcastcmds'addr (or nothing as default) using multicast (open for your clients using command execution option the video that is being streamed on the network). This provided mcastcmds is running on your clients machine (as a daemon for example). They will have no means of knowing the video stream multicast address so it provides you the option to set it yourself and them not knowing..given mcastcmds is running on their machine and have vlc installed. 
+(e.g. usage first stream to your network via vlc on the commandline as: vlc file.vid --sout '#duplicate{dst=rtp{mux=ts,dst=225.224.222.213}, dst=display}'
+then use mcastcmds on the network as: mcastcmds -c vlc rtp://225.224.222.213 -m mcastcmds'addr (or nothing as default) using multicast (open for your clients using command execution option the video that is being streamed on the network). This provided mcastcmds is running on your clients machine (as a daemon for example). They will have no means of knowing the video stream multicast address so it provides you the option to set it yourself and them not knowing..given mcastcmds is running on their machine and have vlc installed. 

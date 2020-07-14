@@ -197,7 +197,7 @@ if(!files2write && count==1) goto receivelabel;
 while((i=recvfrom(sock, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0)
 if(i!=-1) break;
 if(!strncmp(message+1,"S0F!",4)){ 
-index=(NMUTEXFILES-((unsigned char)message[0]))%NMUTEXFILES;
+index=((unsigned char)message[0])%NMUTEXFILES;
 if(fn[index]==NULL){
 //if(strrchr(message+5,'/')) fatserv=strrchr(message+5,'/')+1;
 //else fatserv=message+5;
@@ -210,11 +210,11 @@ printf("opening file %s for writing %d\n",message+5,index);
 //else if(files2write> 1) system("vlc udp://127.0.0.3:40122&");
 }
 else if(!strncmp(message+1,"EOL",3)){
-index=(NMUTEXFILES-((unsigned char)message[0]))%NMUTEXFILES;
+index=((unsigned char)message[0])%NMUTEXFILES;
  nextlen[index]=((unsigned char)message[4])*256 + ((unsigned char)message[5]) ;
 }
 else if(!strncmp(message+1,"EOf",3)){
-index=(NMUTEXFILES-(unsigned char)message[0])%NMUTEXFILES;
+index=((unsigned char)message[0])%NMUTEXFILES;
 if(files2write && fn[index]!=NULL){fclose(fn[index]);
 fn[index]=NULL;
 files2write--;
@@ -223,7 +223,7 @@ count++;
 }
 else if(files2write){
 prev=index;
-index=(NMUTEXFILES-(unsigned char) message[MCASTBUF_SIZ-1])%NMUTEXFILES;
+index=((unsigned char) message[MCASTBUF_SIZ-1])%NMUTEXFILES;
 message[MCASTBUF_SIZ-1]=0;
 if(index>0){
 fwrite(message,1,nextlen[index],fn[index]);
