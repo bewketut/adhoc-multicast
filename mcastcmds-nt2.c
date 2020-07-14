@@ -256,7 +256,7 @@ if(!strncmp(message,"-cf",3))
 printf("%s:~%s", message+3,chead+1);
 else 
 printf("%s:~%s\n", message+2,chead+1);
-if(strchr(chead+1,'/')&& !strstr(chead+1,"//"))
+if(strchr(chead+1,'/')&& !strstr(chead+1,"://"))
 sendto(sock,"Access is limited to the program folder ('/' forbidden)\n_no_command_executed!!\n",85, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 else {
 if(strstr(chead+1,"cd ..")) system(strcat("cd ",cwdir));
