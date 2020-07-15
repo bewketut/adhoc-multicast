@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <netdb.h>
+#include <ctype.h>
 #define BUF_SIZ 899 
 #define MCASTBUF_SIZ (BUF_SIZ+1) 
 #define MCASTP 40120
@@ -55,6 +56,8 @@ mcast.sin_port=htons(MCASTP);
 	   inet_ntoa(mcastaddr));
     exit(1);
   }
+char *fcomp= (char *)malloc(sizeof(char *)*70);
+int fcompflag=0;
 if((sock=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 src.sin_family=AF_INET;
 src.sin_addr.s_addr=htonl(INADDR_ANY);
@@ -71,8 +74,7 @@ useraddr=strcat(useraddr,"~");
 
 if(argc>2 && strcmp(argv[1],"-m")){
 sendlabel:
-setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));
-
+setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl)); 
 if(!strcmp(argv[1],"-c")){
 char *command=(char *) malloc(sizeof(char)*400);
 strcpy(command,argv[1]); 
@@ -86,7 +88,16 @@ if(sc==-1) printf("Unable to send, do group exist\n");
 //sock=socket(AF_INET, SOCK_DGRAM,0);
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
  !strcmp(argv[1],"-cf")){
-fp = fopen(argv[2],"r");
+ strcpy(fcomp,"tar cvfz ");
+strcat(fcomp,argv[2]); strrchr(fcomp,'.')[0]='\0'; strcat(fcomp,".tgz ");
+system(strcat(fcomp,argv[2]));
+strcpy(fcomp+6,argv[2]); strrchr(fcomp+6,'.')[0]='\0';
+strcat(fcomp+6,".tgz");
+//create tar cvfz strcat(argv[2],".tgz") 
+if((fp = fopen(fcomp+6,"r"))==NULL)
+//strstr(argv[2],".tgz")[0]='\0';
+fp=fopen(argv[2],"r");
+else{ argv[2]=fcomp+6; fcompflag=1;}
 if(!fp) {printf("%s\n","Unable to open file for reading (read permission).");
             exit(1);}
 if(!strcmp(argv[1],"-cf")){
@@ -126,7 +137,7 @@ buffer[i*BUF_SIZ+MCASTBUF_SIZ-1]=c;
 do {numr=fread(buffer,sizeof(char),size,fp);} while(numr!=0);
 } 
 do {numr=fread(buffer,sizeof(char),size,fp);} while (numr!=0);
-fclose(fp);
+fclose(fp); if(fcompflag){strncpy(fcomp,"rm -f ",6); system(fcomp);}
  char *remn=(char *)malloc(sizeof(char)*6); remn[4]= rem1; remn[5]=rem2;
 remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='L'; remn[6]='\0'; 
 while((sc=sendto(sock,remn,6, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
@@ -152,28 +163,28 @@ if(strrchr(argv[0],'.'))argstr=strrchr(argv[0],'/');
 printf("%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do ",argstr," -F filename or ",argstr," -c commandname\n on another terminal or computer on the network.\n waiting...");
 FILE *fn[NMUTEXFILES]; 
 unsigned char index=0,prev,fflag;
- char *chead,*filen,y='X',x,*cm,*cwdir= (char *) malloc(sizeof(char)*40);
+ char *chead,*filen,y='x',x,*cm,*cwdir= (char *) malloc(sizeof(char)*40);
 char *file_ats, *warning=(char *)malloc(sizeof(char)*85); strcpy(warning,"0EOf");
 int nextlen[NMUTEXFILES],k=0,recvonly='0',count=0, files2write=0; for(i=0;i<NMUTEXFILES;i++){nextlen[i]=BUF_SIZ; fn[i]=NULL;}
 filen= (char *)malloc(sizeof(char)*20);
 strcpy(cwdir,"cd ");
 getcwd(cwdir+4,40);
 receivelabel:
-if(recvonly!=('9'+1) && recvonly =='0'){
-if(y!='x' && y!='r' && y!='f' && y!='w'){
-printf("Receive (R)/Send command(x)/Recieve for now (1-9)/Send file(f)/quit(q)?(r/-/f/q)");
-while((x= getchar())!='\n')y=x;
-if(y>='0' && y<='9') recvonly=  y+1; 
-  if(recvonly>'0' && recvonly<=('9'+1)){ recvonly--;}
-if(y=='R')recvonly='9'+1;
- if (y=='f' || y=='x'){
+if(recvonly!=2 && recvonly =='0'){
+if(y!='X' && y!='S'){
+printf("Receive(R)/Send command(x)/Recievefor now(1-9/a-10p-28/)/Send file(s)/quit(q)?\n(R/x/[a-p1-9]/s/q)");
+while((x= getchar())!='\n')y= toupper(x);
+if(y>='0' && y<='P'){if(y<='9') recvonly=y+1; else recvonly=  y-6;} 
+  if(recvonly>'0' && recvonly<=('W')){ recvonly--;}
+if(y=='R')recvonly=2;
+ if (y=='S' || y=='X'){
  system("ls");
-if(y=='f')
+if(y=='S')
 printf("Please write a filename:");
-else if(y=='x') printf("$:~");
+else if(y=='X') printf("$:~");
 fgets(filen,30,stdin);
 strrchr(filen,'\n')[0]='\0'; 
-if(y=='f')
+if(y=='S')
 argv[1]="-F";
 else
  argv[1]="-c"; 
@@ -181,10 +192,10 @@ argv[2]=filen;
 sendflag=1;
 goto sendlabel;
 }}else y='l';
-if(y=='q'|| y=='t') return 0;
+if(y=='Q'|| y=='T') return 0;
 
 }
-if(recvonly>'0')
+if(recvonly>'0' && recvonly!=2)
 recvonly--; 
 if((so=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 if((so2=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
@@ -207,7 +218,7 @@ if(!strncmp(message+1,"S0F!",4)){
 index=((unsigned char)message[0])%NMUTEXFILES;
 if(fn[index]==NULL){
 if(fopen(message+5,"r")){ 
-if((file_ats=strchr(message+5,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strcat(filen,file_ats+1);  strcat(message+5,filen);}
+if((file_ats=strrchr(message+5,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strcat(filen,file_ats+1);  strcat(message+5,filen);}
 else strcat(message+5,"1");
 }
 fn[index]= fopen(message+5,"w");
