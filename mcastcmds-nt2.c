@@ -60,9 +60,6 @@ src.sin_family=AF_INET;
 src.sin_addr.s_addr=htonl(INADDR_ANY);
 src.sin_port=htons(MCASTP);
 bind(sock, (struct sockaddr *) &src, sizeof(src));
-if(argc>2 && strcmp(argv[1],"-m")){
-sendlabel:
-setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));
 uid_t user;
 user=getuid();
 struct passwd *user_p=getpwuid(user); 
@@ -71,6 +68,10 @@ gethostname(host,255);
 
 char *useraddr= strcat(strcat(user_p->pw_name,"@"),host);
 useraddr=strcat(useraddr,"~");
+
+if(argc>2 && strcmp(argv[1],"-m")){
+sendlabel:
+setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));
 
 if(!strcmp(argv[1],"-c")){
 char *command=(char *) malloc(sizeof(char)*400);
@@ -152,17 +153,19 @@ printf("%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do
 FILE *fn[NMUTEXFILES]; 
 unsigned char index=0,prev,fflag;
  char *chead,*filen,y='X',x,*cm,*cwdir= (char *) malloc(sizeof(char)*40);
-char *file_ats;
-int nextlen[NMUTEXFILES],k=0,recvonly=0,count=0, files2write=0; for(i=0;i<NMUTEXFILES;i++){nextlen[i]=BUF_SIZ; fn[i]=NULL;}
+char *file_ats, *warning=(char *)malloc(sizeof(char)*85); strcpy(warning,"0EOf");
+int nextlen[NMUTEXFILES],k=0,recvonly='0',count=0, files2write=0; for(i=0;i<NMUTEXFILES;i++){nextlen[i]=BUF_SIZ; fn[i]=NULL;}
 filen= (char *)malloc(sizeof(char)*20);
 strcpy(cwdir,"cd ");
 getcwd(cwdir+4,40);
 receivelabel:
-if(recvonly!=2){
-if(y!='x' && y!='r' && y!='f'){
-printf("Receive (R)/Send command(x)/Recieve for now (-)/Send file(f)/quit(q)?(r/-/f/q)");
-while((x= getchar())!='\n')y=x;  
-if(y=='R')recvonly=2;
+if(recvonly!=('9'+1) && recvonly =='0'){
+if(y!='x' && y!='r' && y!='f' && y!='w'){
+printf("Receive (R)/Send command(x)/Recieve for now (1-9)/Send file(f)/quit(q)?(r/-/f/q)");
+while((x= getchar())!='\n')y=x;
+if(y>='0' && y<='9') recvonly=  y+1; 
+  if(recvonly>'0' && recvonly<=('9'+1)){ recvonly--;}
+if(y=='R')recvonly='9'+1;
  if (y=='f' || y=='x'){
  system("ls");
 if(y=='f')
@@ -181,7 +184,8 @@ goto sendlabel;
 if(y=='q'|| y=='t') return 0;
 
 }
- 
+if(recvonly>'0')
+recvonly--; 
 if((so=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 if((so2=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 temp2.sin_family=temp.sin_family=AF_INET;
@@ -224,6 +228,7 @@ if(files2write && fn[index]!=NULL){fclose(fn[index]);
 fn[index]=NULL;
 files2write--;
 printf("%s %d\n","Finished writing", index); } 
+if(message[0]=='0')printf("%s\n",message+4);
 count++;
 }
 else if(files2write){
@@ -247,12 +252,12 @@ chead[0]='\0';
 if(!strncmp(message,"-cf",3))
 printf("%s:-%s", message+3,chead+1);
 else printf("%s:-%s\n", message+2,chead+1);
-if(strchr(chead+1,'/')&& !strstr(chead+1,"//"))
-sendto(sock,"Access is limited to the program folder ('/' forbidden)\n_no_command_executed!!\n",85, 0, (struct sockaddr *) &mcast, sizeof(mcast));
+if(strchr(chead+1,'/')&& !strstr(chead+1,"//")){
+sendto(sock,strcat(strcat(warning,"Warning error: Access is limited to the program folder ('/' forbidden)_no_command_executed!!~from~"),useraddr),125, 0, (struct sockaddr *) &mcast, sizeof(mcast)); count++;}
 else {
 if(strstr(chead+1,"cd ~")||strstr(chead+1,"cd ..")) system(cwdir);
 else
-system(chead+1);count++;}
+system(chead+1);}count++;
 }}
 else if(!files2write && !strncmp(message,"-c",2)){
 chead= strchr(message,'~');
@@ -261,12 +266,13 @@ if(!strncmp(message,"-cf",3))
 printf("%s:~%s", message+3,chead+1);
 else 
 printf("%s:~%s\n", message+2,chead+1);
-if(strchr(chead+1,'/')&& !strstr(chead+1,"://"))
-sendto(sock,"Access is limited to the program folder ('/' forbidden)\n_no_command_executed!!\n",85, 0, (struct sockaddr *) &mcast, sizeof(mcast));
+if(strchr(chead+1,'/')&& !strstr(chead+1,"//")){
+sendto(sock,strcat(strcat(warning,"Warning error: Access is limited to the program folder ('/' forbidden)_no_command_executed!!~from~"),strcat(useraddr,cwdir+4)),150, 0, (struct sockaddr *) &mcast, sizeof(mcast));//y='w'; count++;
+}
 else {
 if(strstr(chead+1,"cd ~")||strstr(chead+1,"cd ..")) system(cwdir);
 else
-system(chead+1); count++;}
+system(chead+1);count++; }
 }
 else  
  fwrite(message,1,nextlen[index], stdout);
