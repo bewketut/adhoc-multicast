@@ -89,15 +89,18 @@ if(sc==-1) printf("Unable to send, do group exist\n");
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
  !strcmp(argv[1],"-cf")){
  strcpy(fcomp,"tar cvfz ");
-strcat(fcomp,argv[2]); strrchr(fcomp,'.')[0]='\0'; strcat(fcomp,".tgz ");
-system(strcat(fcomp,argv[2]));
-strcpy(fcomp+6,argv[2]); strrchr(fcomp+6,'.')[0]='\0';
-strcat(fcomp+6,".tgz");
+strcat(fcomp,argv[2]); if(strrchr(fcomp,'.') && !strstr(fcomp,".."))strrchr(fcomp,'.')[0]='\0'; strcat(fcomp,".tgz ");
+system(strcat(fcomp,argv[2])); 
+strcpy(fcomp+6,argv[2]); if(strrchr(fcomp+6,'.')&& !strstr(fcomp+6,"..")){strrchr(fcomp+6,'.')[0]='\0';fcompflag=1;}
+strcat(fcomp,".tgz");
+//printf(fcomp+6);
 //create tar cvfz strcat(argv[2],".tgz") 
-if((fp=fopen(argv[2],"r"))==NULL){
-fp = fopen(fcomp+6,"r");
+if(fcompflag==1)
+fp=fopen(argv[2],"r");
+else fp=fopen(fcomp+6,"r");
 //strstr(argv[2],".tgz")[0]='\0';
-argv[2]=fcomp+6; fcompflag=1;}
+//argv[2]=fcomp+6;
+
 if(!fp) {printf("%s\n","Unable to open file for reading (read permission).");
             exit(1);}
 if(!strcmp(argv[1],"-cf")){
