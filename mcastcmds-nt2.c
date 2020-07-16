@@ -88,19 +88,17 @@ if(sc==-1) printf("Unable to send, do group exist\n");
 //sock=socket(AF_INET, SOCK_DGRAM,0);
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
  !strcmp(argv[1],"-cf")){
- strcpy(fcomp,"tar cvfz ");
-strcat(fcomp,argv[2]); if(strrchr(fcomp,'.') && !strstr(fcomp,".."))strrchr(fcomp,'.')[0]='\0'; strcat(fcomp,".tgz ");
+ strcpy(fcomp,"tar cvfz "); int strf=0;if(strrchr(argv[2],'/'))strf=(int)strrchr(strrchr(argv[2],'/'),'.');
+strcat(fcomp,argv[2]); if((strrchr(fcomp,'/')&& strf)|| (!strrchr(fcomp,'/') && strrchr(fcomp,'.')))strrchr(fcomp,'.')[0]='\0'; strcat(fcomp,".tgz ");
 system(strcat(fcomp,argv[2])); 
-strcpy(fcomp+6,argv[2]); if(strrchr(fcomp+6,'.')&& !strstr(fcomp+6,"..")){strrchr(fcomp+6,'.')[0]='\0';fcompflag=1;}
+strcpy(fcomp+6,argv[2]);if((strrchr(fcomp+6,'/')&& strf)|| (!strrchr(fcomp+6,'/') && strrchr(fcomp+6,'.'))){strrchr(fcomp+6,'.')[0]='\0';fcompflag=1;}
 strcat(fcomp,".tgz");
-//printf(fcomp+6);
 //create tar cvfz strcat(argv[2],".tgz") 
 if(fcompflag==1)
 fp=fopen(argv[2],"r");
-else fp=fopen(fcomp+6,"r");
-//strstr(argv[2],".tgz")[0]='\0';
-//argv[2]=fcomp+6;
-
+else {fp=fopen(fcomp+6,"r");
+argv[2]=fcomp+6;
+}
 if(!fp) {printf("%s\n","Unable to open file for reading (read permission).");
             exit(1);}
 if(!strcmp(argv[1],"-cf")){
@@ -224,6 +222,7 @@ if(fopen(message+5,"r")){
 if((file_ats=strrchr(message+5,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strcat(filen,file_ats+1);  strcat(message+5,filen);}
 else strcat(message+5,"1");
 }
+//printf("message+5: %s",message+5);
 fn[index]= fopen(message+5,"w");
 } 
 files2write++;
