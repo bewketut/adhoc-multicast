@@ -165,7 +165,7 @@ printf("%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do
 FILE *fn[NMUTEXFILES]; 
 unsigned char index=0,prev,fflag;
  char *chead,*filen,y='x',x,*cm,*cwdir= (char *) malloc(sizeof(char)*40);
-char *file_ats, *warning=(char *)malloc(sizeof(char)*85); strcpy(warning,"0EOf");
+char *file_ats, *warning=(char *)malloc(sizeof(char)*85); strcpy(warning,"EEOf");
 int nextlen[NMUTEXFILES],k=0,recvonly='0',count=0, files2write=0; for(i=0;i<NMUTEXFILES;i++){nextlen[i]=BUF_SIZ; fn[i]=NULL;}
 filen= (char *)malloc(sizeof(char)*20);
 strcpy(cwdir,"cd ");
@@ -241,7 +241,7 @@ if(files2write && fn[index]!=NULL){fclose(fn[index]);
 fn[index]=NULL;
 files2write--;
 printf("%s %d\n","Finished writing", index); } 
-if(message[0]=='0')printf("%s\n",message+4);
+if(message[0]=='E')printf("%s\n",message+4);
 count++;
 }
 else if(files2write){
