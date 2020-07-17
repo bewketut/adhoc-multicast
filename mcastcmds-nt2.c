@@ -40,6 +40,7 @@ return 0;
 }
 char *inetadr="235.234.232.213";
 int sendflag=0;
+
 for(i=1; i<argc; i++) 
 if(!strcmp(argv[i],"-m")){ inetadr= argv[i+1]; break;}
 mcastaddr.s_addr=inet_addr(inetadr);
@@ -112,7 +113,7 @@ unsigned char fileround=argv[2][0] + argv[2][strlen(argv[2])-5] - argv[2][strlen
 unsigned char filehash3= fileround%NMUTEXFILES;  
 unsigned char filehash= filehash3;
 char *filename= (char *) malloc(sizeof(char)*300);
-if(!strcmp(argv[1],"-F")) { filename[1]='S'; filename[2]='0'; filename[3]='F';filename[4]='!';}
+if(!strcmp(argv[1],"-F") || !strcmp(argv[1],"-f")) { filename[1]='S'; filename[2]='0'; filename[3]='F';filename[4]='!';if(!strcmp(argv[1],"-f")) filename[3]='f';}
 filename[0]=filehash; filename[5]='\0';
 if(strrchr(argv[2],'/')) filename=strcat(filename,strrchr(argv[2],'/')+1);
 else
@@ -161,7 +162,7 @@ if(i < 0) {printf("Cannot join Multicast Group\n"); exit(0);}
 char *argstr= argv[0];
 if(strrchr(argv[0],'/'))argstr=strrchr(argv[0],'/')+1;
 if(strrchr(argv[0],'.'))argstr=strrchr(argv[0],'/');
-printf("%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do ",argstr," -F filename or ",argstr," -c commandname\n on another terminal or computer on the network.\n waiting...");
+fprintf(stderr,"%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do ",argstr," -F filename or ",argstr," -c commandname\n on another terminal or computer on the network.\n waiting...");
 FILE *fn[NMUTEXFILES]; 
 unsigned char index=0,prev,fflag;
  char *chead,*filen,y='x',x,*cm,*cwdir= (char *) malloc(sizeof(char)*40);
@@ -173,20 +174,21 @@ getcwd(cwdir+4,40);
 receivelabel:
 if(recvonly!=2 && recvonly =='0'){
 if(y!='X' && y!='S'){
-printf("Receive(R)/Send command(x)/Recievefor now(1-9/a-10p-28/)/Send file(s)/quit(q)?\n(R/x/[a-p1-9]/s/q)");
-while((x= getchar())!='\n')y= toupper(x);
+fprintf(stderr,"Receive(R)/Send command(x)/Recievefor now(1-9/a-10p-28/)/Send file(s/v-stream)/quit(q)?\n(R/x/[a-p1-9]/s[v]/q)");
+while((x= getchar())!='\n')y= toupper(x);fprintf(stderr,"\n");
 if(y>='0' && y<='P'){if(y<='9') recvonly=y+1; else recvonly=  y-6;} 
   if(recvonly>'0' && recvonly<=('W')){ recvonly--;}
 if(y=='R')recvonly=2;
- if (y=='S' || y=='X'){
+ if (y=='S' || y=='X' || y=='V'){
  system("ls");
-if(y=='S')
+if(y=='S'|| y=='V')
 printf("Please write a filename:");
 else if(y=='X') printf("$:~");
 fgets(filen,30,stdin);
 strrchr(filen,'\n')[0]='\0'; 
 if(y=='S')
 argv[1]="-F";
+else if(y=='V') argv[1]="-f";
 else
  argv[1]="-c"; 
 argv[2]=filen;
@@ -215,7 +217,7 @@ mlen=sizeof(src);
 if(!files2write && count==1) goto receivelabel;
 while((i=recvfrom(sock, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0)
 if(i!=-1) break;
-if(!strncmp(message+1,"S0F!",4)){ 
+if(!strncmp(message+1,"S0F!",4)||!strncmp(message+1,"S0f!",4)){ 
 index=((unsigned char)message[0])%NMUTEXFILES;
 if(fn[index]==NULL){
 if(fopen(message+5,"r")){ 
@@ -223,10 +225,11 @@ if((file_ats=strrchr(message+5,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strc
 else strcat(message+5,"1");
 }
 //printf("message+5: %s",message+5);
-fn[index]= fopen(message+5,"w");
+if(!strncmp(message+1,"SOF!",4)){
+fn[index]= fopen(message+5,"w");k=1;}
 } 
 files2write++;
-printf("opening file %s for writing %d\n",message+5,index);
+fprintf(stderr,"opening file %s for writing %d\n",message+5,index);
 //if(files2write>0)
 //system("vlc udp://127.0.0.2:40121&");
 //else if(files2write> 1) system("vlc udp://127.0.0.3:40122&");
@@ -240,7 +243,9 @@ index=((unsigned char)message[0])%NMUTEXFILES;
 if(files2write && fn[index]!=NULL){fclose(fn[index]);
 fn[index]=NULL;
 files2write--;
-printf("%s %d\n","Finished writing", index); } 
+fprintf(stderr,"%s %d\n","Finished writing", index);
+ }if(k==0)
+fprintf(stderr,"%s %d\n","Finished writing", index); 
 if(message[0]=='E')printf("%s\n",message+4);
 count++;
 }
@@ -249,14 +254,16 @@ prev=index;
 index=((unsigned char) message[MCASTBUF_SIZ-1])%NMUTEXFILES;
 message[MCASTBUF_SIZ-1]=0;
 if(index>0){
+if(k==1)
 fwrite(message,1,nextlen[index],fn[index]);
-if(index==prev)
-sendto(so,message,BUF_SIZ, 0, (struct sockaddr *) &temp, sizeof(temp));
+else 
+fwrite(message,1,nextlen[index],stdout);
+//sendto(so,message,BUF_SIZ, 0, (struct sockaddr *) &temp, sizeof(temp));
      //  write(so,message,nextlen[index]); 
-else //write(so2,message,nextlen[index]); 
-sendto(so2,message,BUF_SIZ, 0, (struct sockaddr *) &temp2, sizeof(temp2));
+//else //write(so2,message,nextlen[index]); 
+//sendto(so2,message,BUF_SIZ, 0, (struct sockaddr *) &temp2, sizeof(temp2));
 if(nextlen[index]!=BUF_SIZ){
-printf("%s %d\n","Finishing writing file", index);
+fprintf(stderr,"%s %d\n","Finishing writing file", index);
 nextlen[index]=BUF_SIZ;}
 }
 else if(!strncmp(message,"-c",2)){
@@ -287,9 +294,10 @@ if(strstr(chead+1,"cd ~")||strstr(chead+1,"cd ..")) system(cwdir);
 else
 system(chead+1);count++; }
 }
-else  
+else { 
+// if(strncmp(message,"-f",2) && k==0){ system("totem fd://0 &")|| system("vlc fd://0 &");k=1;}
  fwrite(message,1,nextlen[index], stdout);
-
+}
 }
 //fclose(fn[index]); fn[index]=NULL;
 //if(getchar()==EOF) 
