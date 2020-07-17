@@ -91,6 +91,7 @@ if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") ||
  !strcmp(argv[1],"-cf")){
  strcpy(fcomp,"tar cvfz "); int strf=0;if(strrchr(argv[2],'/'))strf=(int)strrchr(strrchr(argv[2],'/'),'.');
 strcat(fcomp,argv[2]); if((strrchr(fcomp,'/')&& strf)|| (!strrchr(fcomp,'/') && strrchr(fcomp,'.')))strrchr(fcomp,'.')[0]='\0'; strcat(fcomp,".tgz ");
+if(!strf)
 system(strcat(fcomp,argv[2])); 
 strcpy(fcomp+6,argv[2]);if((strrchr(fcomp+6,'/')&& strf)|| (!strrchr(fcomp+6,'/') && strrchr(fcomp+6,'.'))){strrchr(fcomp+6,'.')[0]='\0';fcompflag=1;}
 strcat(fcomp,".tgz");
@@ -225,8 +226,9 @@ if((file_ats=strrchr(message+5,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strc
 else strcat(message+5,"1");
 }
 //printf("message+5: %s",message+5);
-if(!strncmp(message+1,"SOF!",4)){
-fn[index]= fopen(message+5,"w");k=1;}
+if(!strncmp(message+1,"SOF!",4))
+fn[index]= fopen(message+5,"w");
+else k=1;
 } 
 files2write++;
 fprintf(stderr,"opening file %s for writing %d\n",message+5,index);
@@ -243,9 +245,9 @@ index=((unsigned char)message[0])%NMUTEXFILES;
 if(files2write && fn[index]!=NULL){fclose(fn[index]);
 fn[index]=NULL;
 files2write--;
-fprintf(stderr,"%s %d\n","Finished writing", index);
- }if(k==0)
-fprintf(stderr,"%s %d\n","Finished writing", index); 
+fprintf(stderr,"%s %d\n","Closed file",index);
+ }if(k==2)
+fprintf(stderr,"%s %d\n","Closed file", index); 
 if(message[0]=='E')printf("%s\n",message+4);
 count++;
 }
@@ -254,16 +256,18 @@ prev=index;
 index=((unsigned char) message[MCASTBUF_SIZ-1])%NMUTEXFILES;
 message[MCASTBUF_SIZ-1]=0;
 if(index>0){
-if(k==1)
+if(k==0)
 fwrite(message,1,nextlen[index],fn[index]);
-else 
-fwrite(message,1,nextlen[index],stdout);
+else if (index==prev){ 
+fwrite(message,1,nextlen[index],stdout);k=2;}
+
 //sendto(so,message,BUF_SIZ, 0, (struct sockaddr *) &temp, sizeof(temp));
      //  write(so,message,nextlen[index]); 
 //else //write(so2,message,nextlen[index]); 
 //sendto(so2,message,BUF_SIZ, 0, (struct sockaddr *) &temp2, sizeof(temp2));
 if(nextlen[index]!=BUF_SIZ){
-fprintf(stderr,"%s %d\n","Finishing writing file", index);
+fprintf(stderr,"%s %d\n","Finished writing file", index);
+//fprintf(stdout,"EOF");
 nextlen[index]=BUF_SIZ;}
 }
 else if(!strncmp(message,"-c",2)){
