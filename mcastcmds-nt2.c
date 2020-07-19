@@ -89,11 +89,14 @@ if(sc==-1) printf("Unable to send, do group exist\n");
 //sock=socket(AF_INET, SOCK_DGRAM,0);
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
  !strcmp(argv[1],"-cf")){
- strcpy(fcomp,"tar cvfz "); int strf=0;if(strrchr(argv[2],'/'))strf=(int)strrchr(strrchr(argv[2],'/'),'.');
-strcat(fcomp,argv[2]); if((strrchr(fcomp,'/')&& strf)|| (!strrchr(fcomp,'/') && strrchr(fcomp,'.')))strrchr(fcomp,'.')[0]='\0'; strcat(fcomp,".tgz ");
+ strcpy(fcomp,"tar cvfz "); int strf=0; char *strf2=  strrchr(argv[2],'/');
+if(strf2)strf=(int)strrchr(strf2,'.');
+else strf= (int)strrchr(argv[2],'.');
+strcat(fcomp,argv[2]); if(strf)strrchr(fcomp,'.')[0]='\0'; 
+strcat(fcomp,".tgz ");
 if(!strf)
 system(strcat(fcomp,argv[2])); 
-strcpy(fcomp+6,argv[2]);if((strrchr(fcomp+6,'/')&& strf)|| (!strrchr(fcomp+6,'/') && strrchr(fcomp+6,'.'))){strrchr(fcomp+6,'.')[0]='\0';fcompflag=1;}
+strcpy(fcomp+6,argv[2]);if(strf){strrchr(fcomp+6,'.')[0]='\0';fcompflag=1;}
 strcat(fcomp,".tgz");
 //create tar cvfz strcat(argv[2],".tgz") 
 if(fcompflag==1)
@@ -170,7 +173,21 @@ unsigned char index=0,prev,fflag;
 char *file_ats, *warning=(char *)malloc(sizeof(char)*85); strcpy(warning,"EEOf");
 int nextlen[NMUTEXFILES],k=0,recvonly='0',count=0, files2write=0; for(i=0;i<NMUTEXFILES;i++){nextlen[i]=BUF_SIZ; fn[i]=NULL;}
 filen= (char *)malloc(sizeof(char)*20);
-strcpy(cwdir,"cd ");
+strcpy(cwdir,"cd "); FILE *html=NULL,*html1=NULL; 
+
+html= fopen("index.htm","w");
+fprintf(html,"<!doctype html>\
+<html>\
+    <head>\
+        <meta charset='utf-8'>\
+        <meta http-equiv='x-ua-compatible' content='ie=edge'>\
+        <title></title>\
+        <meta name='description' content='www'>\
+<meta name='viewport' content='width=device-width, initial-scale=1.0'><script>\
+function vidcload(){window.location.reload(true);}</script></head>");
+fclose(html);
+char vid[540]; strcpy(vid,"<video  style='margin-left:3%;' width='450' height='330' autoplay='' controls='' id='thevid' ><source src='");
+
 getcwd(cwdir+4,40);
 receivelabel:
 if(recvonly!=2 && recvonly =='0'){
@@ -226,10 +243,18 @@ if((file_ats=strrchr(message+5,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strc
 else strcat(message+5,"1");
 }
 //printf("message+5: %s",message+5);
-if(!strncmp(message+1,"SOF!",4))
+if(!strncmp(message+1,"S0f!",4))
+fn[index]=stdout;
+else 
 fn[index]= fopen(message+5,"w");
-else k=1;
 } 
+html1=fopen("index.htm","a");
+if(html1){strcat(vid,message+5);
+ strcat(vid,"'> </video><button onclick='document.querySelector(\"#thevid\").src=\"");
+strcat(vid,message+5); strcat(vid,"\"'>Update now</button>"); 
+fprintf(html1,"%s",vid);
+fclose(html1);
+}
 files2write++;
 fprintf(stderr,"opening file %s for writing %d\n",message+5,index);
 //if(files2write>0)
@@ -242,12 +267,12 @@ index=((unsigned char)message[0])%NMUTEXFILES;
 }
 else if(!strncmp(message+1,"EOf",3)){
 index=((unsigned char)message[0])%NMUTEXFILES;
-if(files2write && fn[index]!=NULL){fclose(fn[index]);
+if(files2write && fn[index]!=NULL){if(fn[index]==stdout)fflush(fn[index]);
+else fclose(fn[index]);
 fn[index]=NULL;
 files2write--;
 fprintf(stderr,"%s %d\n","Closed file",index);
- }if(k==2)
-fprintf(stderr,"%s %d\n","Closed file", index); 
+ } 
 if(message[0]=='E')printf("%s\n",message+4);
 count++;
 }
@@ -256,10 +281,7 @@ prev=index;
 index=((unsigned char) message[MCASTBUF_SIZ-1])%NMUTEXFILES;
 message[MCASTBUF_SIZ-1]=0;
 if(index>0){
-if(k==0)
 fwrite(message,1,nextlen[index],fn[index]);
-else if (index==prev){ 
-fwrite(message,1,nextlen[index],stdout);k=2;}
 
 //sendto(so,message,BUF_SIZ, 0, (struct sockaddr *) &temp, sizeof(temp));
      //  write(so,message,nextlen[index]); 
