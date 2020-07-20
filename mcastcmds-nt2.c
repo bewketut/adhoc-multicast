@@ -242,6 +242,9 @@ if(!strncmp(message+1,"S0f!",4) || !fopen("ttt.t","w")){
 if((so[index]=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 temp[index].sin_family=AF_INET;
 temp[index].sin_addr.s_addr=inet_addr("127.0.0.1");
+if(files2write==0) 
+temp[index].sin_port=htons(30100);
+else
 temp[index].sin_port=htons(30100+index);
 
 }
@@ -250,7 +253,9 @@ fn[index]= fopen(message+5,"w");
 
 
 if(prev!=index){
-snprintf(localport,8, "%d",30100+index);
+if(files2write==0) 
+snprintf(localport,8, "%d",30100);
+else snprintf(localport,8, "%d",30100+index);
 html1=fopen("index.htm","a");
 if(html1){
 strcpy(vid,"<video  style='margin-left:3%;' width='100' height='330' autoplay='' controls='' id='thevid");strcat(vid,id); strcat(vid,"'><source src='");
@@ -274,12 +279,11 @@ index=((unsigned char)message[0])%NMUTEXFILES;
 }
 else if(!strncmp(message+1,"EOf",3)){
 index=((unsigned char)message[0])%NMUTEXFILES;
-if(files2write && fn[index]!=NULL){if(fn[index]==stdout)fflush(fn[index]);
-else fclose(fn[index]);
+if(files2write && fn[index]!=NULL){fclose(fn[index]);
 fn[index]=NULL;
+ } 
 files2write--;
 fprintf(stderr,"%s %d\n","Closed file",index);
- } 
 if(message[0]=='E')printf("%s\n",message+4);
 count++;
 }
