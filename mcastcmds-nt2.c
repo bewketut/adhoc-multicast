@@ -241,7 +241,8 @@ if(!strncmp(message+1,"S0f!",4)){
 if((so[index%10]=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 temp[index%10].sin_family=AF_INET;
 temp[index%10].sin_addr.s_addr=inet_addr("127.0.0.1");
-temp[index%10].sin_port=htons(30100+(mcastp_s[3]-'0')*10+((id[0]-'0')%10));
+temp[index%10].sin_port=htons(30100+(index%10));
+id[0]= (index%10)+'0';
 }
 else 
 fn[index]= fopen(message+5,"w");
@@ -255,10 +256,6 @@ strcat(vid,"http://127.0.0.1:");strcat(vid,mcastp_s); strcat(vid,id);
 strcat(vid,id); strcat(vid,"\").src=\"");
 strcat(vid,"http://127.0.0.1:");strcat(vid,mcastp_s); strcat(vid,id); strcat(vid,"\"'>Update now</button>"); 
 fprintf(html1,"%s",vid);
-id[0]++;
-if(id[0]> '9'){
- mcastp_s[strlen(MCASTP_S)-1]=(mcastp_s[strlen(MCASTP_S)-1]+1)%10;
-id[0]='0';}
 fclose(html1);
 }
 files2write++;
