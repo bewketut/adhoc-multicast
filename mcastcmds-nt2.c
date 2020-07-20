@@ -13,7 +13,7 @@
 #define MCASTBUF_SIZ (BUF_SIZ+1) 
 #define MCASTP 40120
 #define NMUTEXFILES  256
-#define MCASTP_S "4012"
+#define MCASTP_S "3010"
 extern char *base256(int num,char *str);
 extern int tobase10(char *str);
 /*
@@ -186,7 +186,8 @@ fprintf(html,"<!doctype html>\
         <meta name='description' content='www'>\
 <meta name='viewport' content='width=device-width, initial-scale=1.0'><script>\
 function vidcload(){window.location.reload(true);}</script></head>");
-fclose(html); char id[2]; id[0]='1'; id[1]='\0';
+fclose(html); char id[2]; id[0]='0'; id[1]='\0';
+char mcastp_s[5];strcpy(mcastp_s,MCASTP_S);
 char vid[540]; getcwd(cwdir+4,40);
 receivelabel:
 if(recvonly!=2 && recvonly =='0'){
@@ -236,12 +237,11 @@ if((file_ats=strrchr(message+5,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strc
 else strcat(message+5,"1");
 }
 //printf("message+5: %s",message+5);
-
 if(!strncmp(message+1,"S0f!",4)){
 if((so[index%10]=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 temp[index%10].sin_family=AF_INET;
 temp[index%10].sin_addr.s_addr=inet_addr("127.0.0.1");
-temp[index%10].sin_port=htons(MCASTP+((id[0]-'0')%10));
+temp[index%10].sin_port=htons(30100+(mcastp_s[3]-'0')*10+((id[0]-'0')%10));
 }
 else 
 fn[index]= fopen(message+5,"w");
@@ -250,12 +250,15 @@ fn[index]= fopen(message+5,"w");
 html1=fopen("index.htm","a");
 if(html1){
 strcpy(vid,"<video  style='margin-left:3%;' width='100' height='330' autoplay='' controls='' id='thevid");strcat(vid,id); strcat(vid,"'><source src='");
-strcat(vid,"http://127.0.0.1:");strcat(vid,MCASTP_S); strcat(vid,id); 
+strcat(vid,"http://127.0.0.1:");strcat(vid,mcastp_s); strcat(vid,id); 
  strcat(vid,"'></video><button onclick='document.querySelector(\"#thevid");
 strcat(vid,id); strcat(vid,"\").src=\"");
-strcat(vid,"http://127.0.0.1:");strcat(vid,MCASTP_S); strcat(vid,id); strcat(vid,"\"'>Update now</button>"); 
+strcat(vid,"http://127.0.0.1:");strcat(vid,mcastp_s); strcat(vid,id); strcat(vid,"\"'>Update now</button>"); 
 fprintf(html1,"%s",vid);
-id[0]=(id[0]+1)% ('9'+1);
+id[0]++;
+if(id[0]> '9'){
+ mcastp_s[strlen(MCASTP_S)-1]=(mcastp_s[strlen(MCASTP_S)-1]+1)%10;
+id[0]='0';}
 fclose(html1);
 }
 files2write++;
