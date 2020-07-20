@@ -23,9 +23,9 @@ struct srcmutexfiles {
 }; typedef struct srcmutexfiles mcastsrcfile;
 */
 int main(int argc, char **argv){
-struct sockaddr_in src,temp[10],mcast;
+struct sockaddr_in src,temp[NMUTEXFILES],mcast;
 struct in_addr mcastaddr;
-int so[10],sc,i,sock,n;
+int so[NMUTEXFILES],sc,i,sock,n;
 unsigned int ttl,mlen;
 char message[MCASTBUF_SIZ];
 unsigned char c,d;
@@ -236,6 +236,8 @@ if(fopen(message+5,"r")){
 if((file_ats=strrchr(message+5,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strcat(filen,file_ats+1);  strcat(message+5,filen);}
 else strcat(message+5,"1");
 }
+//printf("message+5: %s",message+5);
+} 
 if(!strncmp(message+1,"S0f!",4) || !fopen("ttt.t","w")){
 if((so[index]=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 temp[index].sin_family=AF_INET;
@@ -247,8 +249,6 @@ else
 fn[index]= fopen(message+5,"w");
 
 
-//printf("message+5: %s",message+5);
-} 
 if(prev!=index){
 snprintf(localport,8, "%d",30100+index);
 html1=fopen("index.htm","a");
