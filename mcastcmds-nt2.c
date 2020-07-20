@@ -188,12 +188,13 @@ fprintf(html,"<!doctype html>\
 function vidcload(){window.location.reload(true);}</script></head>");
 fclose(html); char id[2]; id[0]='0'; id[1]='\0';
 char mcastp_s[5];strcpy(mcastp_s,MCASTP_S);
+char localport[8];
 char vid[540]; getcwd(cwdir+4,40);
 receivelabel:
 if(recvonly!=2 && recvonly =='0'){
-if(y!='X' && y!='S'){
-fprintf(stderr,"Receive(R)/Send command(x)/Recievefor now(1-9/a-10p-28/)/Send file(s/v-stream)/quit(q)?\n(R/x/[a-p1-9]/s[v]/q)");
-while((x= getchar())!='\n')y= toupper(x);fprintf(stderr,"\n");
+if(y!='X' && y!='S' && y!='r' && y!='V'){
+fprintf(stderr,"Receive(R)/Send command(x)/Recievefor now(r/1-9/a-10p-28/)/Send file(s/v-stream)/quit(q)?\n(R/x/r[1-9a-p]/s[v]/q)");
+while((x= getchar())!='\n')if(x!='r') y= toupper(x);fprintf(stderr,"\n");
 if(y>='0' && y<='P'){if(y<='9') recvonly=y+1; else recvonly=  y-6;} 
   if(recvonly>'0' && recvonly<=('W')){ recvonly--;}
 if(y=='R')recvonly=2;
@@ -201,8 +202,7 @@ if(y=='R')recvonly=2;
  system("ls");
 if(y=='S'|| y=='V')
 printf("Please write a filename:");
-else if(y=='X') printf("$:~");
-fgets(filen,30,stdin);
+else if(y=='X') printf("$:~"); fgets(filen,30,stdin);
 strrchr(filen,'\n')[0]='\0'; 
 if(y=='S')
 argv[1]="-F";
@@ -236,28 +236,32 @@ if(fopen(message+5,"r")){
 if((file_ats=strrchr(message+5,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strcat(filen,file_ats+1);  strcat(message+5,filen);}
 else strcat(message+5,"1");
 }
-//printf("message+5: %s",message+5);
-if(!strncmp(message+1,"S0f!",4)){
-if((so[index%10]=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
-temp[index%10].sin_family=AF_INET;
-temp[index%10].sin_addr.s_addr=inet_addr("127.0.0.1");
-temp[index%10].sin_port=htons(30100+(index%10));
-id[0]= (index%10)+'0';
+if(!strncmp(message+1,"S0f!",4) || !fopen("ttt.t","w")){
+if((so[index]=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
+temp[index].sin_family=AF_INET;
+temp[index].sin_addr.s_addr=inet_addr("127.0.0.1");
+temp[index].sin_port=htons(30100+index);
+
 }
 else 
 fn[index]= fopen(message+5,"w");
 
+
+//printf("message+5: %s",message+5);
 } 
+if(prev!=index){
+snprintf(localport,8, "%d",30100+index);
 html1=fopen("index.htm","a");
 if(html1){
 strcpy(vid,"<video  style='margin-left:3%;' width='100' height='330' autoplay='' controls='' id='thevid");strcat(vid,id); strcat(vid,"'><source src='");
-strcat(vid,"http://127.0.0.1:");strcat(vid,mcastp_s); strcat(vid,id); 
+strcat(vid,"udp://127.0.0.1:");strcat(vid,localport);  
  strcat(vid,"'></video><button onclick='document.querySelector(\"#thevid");
 strcat(vid,id); strcat(vid,"\").src=\"");
-strcat(vid,"http://127.0.0.1:");strcat(vid,mcastp_s); strcat(vid,id); strcat(vid,"\"'>Update now</button>"); 
+strcat(vid,"udp://127.0.0.1:");strcat(vid,localport);  strcat(vid,"\"'>Update now</button>"); 
 fprintf(html1,"%s",vid);
 fclose(html1);
-}
+id[0]++;
+} }
 files2write++;
 fprintf(stderr,"opening file %s for writing %d\n",message+5,index);
 //if(files2write>0)
@@ -287,7 +291,7 @@ if(index>0){
 if(fn[index])
 fwrite(message,1,nextlen[index],fn[index]);
 else 
-sendto(so[index%10],message,BUF_SIZ, 0, (struct sockaddr *) &temp[index%10], sizeof(temp[index%10]));
+sendto(so[index],message,BUF_SIZ, 0, (struct sockaddr *) &temp[index], sizeof(temp[index]));
      //  write(so,message,nextlen[index]); 
 //else //write(so2,message,nextlen[index]); 
 //sendto(so2,message,BUF_SIZ, 0, (struct sockaddr *) &temp2, sizeof(temp2));
