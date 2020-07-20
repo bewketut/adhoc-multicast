@@ -13,6 +13,7 @@
 #define MCASTBUF_SIZ (BUF_SIZ+1) 
 #define MCASTP 40120
 #define NMUTEXFILES  256
+#define MCASTP_S "4012"
 extern char *base256(int num,char *str);
 extern int tobase10(char *str);
 /*
@@ -22,9 +23,9 @@ struct srcmutexfiles {
 }; typedef struct srcmutexfiles mcastsrcfile;
 */
 int main(int argc, char **argv){
-struct sockaddr_in src, temp,temp2,mcast;
+struct sockaddr_in src,temp[10],mcast;
 struct in_addr mcastaddr;
-int so,so2,sc,i,sock,n;
+int so[10],sc,i,sock,n;
 unsigned int ttl,mlen;
 char message[MCASTBUF_SIZ];
 unsigned char c,d;
@@ -185,10 +186,8 @@ fprintf(html,"<!doctype html>\
         <meta name='description' content='www'>\
 <meta name='viewport' content='width=device-width, initial-scale=1.0'><script>\
 function vidcload(){window.location.reload(true);}</script></head>");
-fclose(html);
-char vid[540]; strcpy(vid,"<video  style='margin-left:3%;' width='450' height='330' autoplay='' controls='' id='thevid' ><source src='");
-
-getcwd(cwdir+4,40);
+fclose(html); char id[2]; id[0]='1'; id[1]='\0';
+char vid[540]; getcwd(cwdir+4,40);
 receivelabel:
 if(recvonly!=2 && recvonly =='0'){
 if(y!='X' && y!='S'){
@@ -218,13 +217,7 @@ if(y=='Q'|| y=='T') return 0;
 }
 if(recvonly>'0' && recvonly!=2)
 recvonly--; 
-if((so=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
-if((so2=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
-temp2.sin_family=temp.sin_family=AF_INET;
-temp.sin_addr.s_addr=inet_addr("127.0.0.2");
-temp2.sin_addr.s_addr=inet_addr("127.0.0.3");
-temp.sin_port=htons(MCASTP+count);
-temp2.sin_port=htons(MCASTP+2);
+//if((so2=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 //if(count== 1) 
 //concat(concat("vlc",inetadr),":40121"))
  
@@ -243,16 +236,26 @@ if((file_ats=strrchr(message+5,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strc
 else strcat(message+5,"1");
 }
 //printf("message+5: %s",message+5);
-if(!strncmp(message+1,"S0f!",4))
-fn[index]=stdout;
+
+if(!strncmp(message+1,"S0f!",4)){
+if((so[index%10]=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
+temp[index%10].sin_family=AF_INET;
+temp[index%10].sin_addr.s_addr=inet_addr("127.0.0.1");
+temp[index%10].sin_port=htons(MCASTP+((id[0]-'0')%10));
+}
 else 
 fn[index]= fopen(message+5,"w");
+
 } 
 html1=fopen("index.htm","a");
-if(html1){strcat(vid,message+5);
- strcat(vid,"'> </video><button onclick='document.querySelector(\"#thevid\").src=\"");
-strcat(vid,message+5); strcat(vid,"\"'>Update now</button>"); 
+if(html1){
+strcpy(vid,"<video  style='margin-left:3%;' width='100' height='330' autoplay='' controls='' id='thevid");strcat(vid,id); strcat(vid,"'><source src='");
+strcat(vid,"http://127.0.0.1:");strcat(vid,MCASTP_S); strcat(vid,id); 
+ strcat(vid,"'></video><button onclick='document.querySelector(\"#thevid");
+strcat(vid,id); strcat(vid,"\").src=\"");
+strcat(vid,"http://127.0.0.1:");strcat(vid,MCASTP_S); strcat(vid,id); strcat(vid,"\"'>Update now</button>"); 
 fprintf(html1,"%s",vid);
+id[0]=(id[0]+1)% ('9'+1);
 fclose(html1);
 }
 files2write++;
@@ -281,9 +284,10 @@ prev=index;
 index=((unsigned char) message[MCASTBUF_SIZ-1])%NMUTEXFILES;
 message[MCASTBUF_SIZ-1]=0;
 if(index>0){
+if(fn[index])
 fwrite(message,1,nextlen[index],fn[index]);
-
-//sendto(so,message,BUF_SIZ, 0, (struct sockaddr *) &temp, sizeof(temp));
+else 
+sendto(so[index%10],message,BUF_SIZ, 0, (struct sockaddr *) &temp[index%10], sizeof(temp[index%10]));
      //  write(so,message,nextlen[index]); 
 //else //write(so2,message,nextlen[index]); 
 //sendto(so2,message,BUF_SIZ, 0, (struct sockaddr *) &temp2, sizeof(temp2));
