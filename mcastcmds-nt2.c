@@ -13,7 +13,7 @@
 #define MCASTBUF_SIZ (BUF_SIZ+2) 
 #define MCASTP 40120
 #define NMUTEXFILES  256
-#define MCASTP_S "3010"
+#define MCASTP_S "3100"
 extern char *base256(int num,char *str);
 extern int tobase10(char *str);
 /*
@@ -73,7 +73,7 @@ unsigned char fileround_userchannel=useraddr[0] + useraddr[1]-useraddr[2]+ usera
 unsigned char userchannel= fileround_userchannel%NMUTEXFILES;
 int channelname=0;channelname= ((userchannel-'0')> 0)? userchannel-'0': userchannel;
 if(argc!=1 && argc < 3 ){
-printf("Your channel number is %d from your username and a folder name channel%d under this directory needs to be created with read/write permission for file sharing. You can be viewed on udp://127.0.0.1:%d\n",channelname,channelname,3010+channelname);
+printf("Your channel number is %d from your username and a folder name channel%d under this directory needs to be created with read/write permission for file sharing. You can be viewed on udp://127.0.0.1:%d\n",channelname,channelname,3100+channelname);
 printf("%s -c command /-F(f) file(-F write file to your channel%d -f streaming) -m mcastaddr (Write mode)\n",argv[0], channelname);
 printf("%s -m mcastaddr (default using -235.234.232.213)(Receive mode)\n",argv[0]);
 return 0;
@@ -243,7 +243,8 @@ if(!strncmp(message+1,"S0F!",4)||!strncmp(message+1,"S0f!",4)){
 channel= ((unsigned char)message[5])%NMUTEXFILES;
 index=((unsigned char)message[0])%NMUTEXFILES;
 int channelport= ((channel-'0') > 0)?channel-'0': channel;
- snprintf(channelfolder+7,4,"%d%s",channelport,"/");
+ snprintf(channelfolder+7,4,"%d",channelport);
+strcat(channelfolder,"/");
 strcat(channelfolder,message+6);
 if(fn[channel][index]==NULL){
 if(fopen(channelfolder,"r")){ 
@@ -257,14 +258,14 @@ temp[channel][index].sin_addr.s_addr=inet_addr("127.0.0.1");
 //if(files2write==0) 
 //temp[channel][index].sin_port=htons(30100);
 //else
-temp[channel][index].sin_port=htons(3010+channelport);
+temp[channel][index].sin_port=htons(3100+channelport);
 }
 //printf("message+5: %s",message+5);
 } 
 if(prev!=index){
 //if(files2write==0) 
 //snprintf(localport,8, "%d",30100);
- snprintf(localport,8, "%d",3010+channelport);
+ snprintf(localport,8, "%d",3100+channelport);
 html1=fopen("index.htm","a");
 if(html1){
 strcpy(vid,"<video  style='margin-left:3%;' width='100' height='330' autoplay='' controls='' id='thevid");strcat(vid,id); strcat(vid,"'><source src='");
@@ -277,7 +278,7 @@ fclose(html1);
 id[0]++;
 } }
 files2write++;
-fprintf(stderr,"opening file %s for writing %d\n",message+5,index);
+fprintf(stderr,"opening file %s for writing %d\n",channelfolder,index);
 //if(files2write>0)
 //system("vlc udp://127.0.0.2:40121&");
 //else if(files2write> 1) system("vlc udp://127.0.0.3:40122&");
