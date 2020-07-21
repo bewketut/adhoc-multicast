@@ -199,6 +199,7 @@ function vidcload(){window.location.reload(true);}</script></head>");
 fclose(html); char id[2]; id[0]='0'; id[1]='\0';
 char mcastp_s[5];strcpy(mcastp_s,MCASTP_S);
 char localport[8];
+int channelport;
 char vid[540]; getcwd(cwdir+4,40);
 receivelabel:
 if(recvonly!=2 && recvonly =='0'){
@@ -242,7 +243,7 @@ if(i!=-1) break;
 if(!strncmp(message+1,"S0F!",4)||!strncmp(message+1,"S0f!",4)){ 
 channel= ((unsigned char)message[5])%NMUTEXFILES;
 index=((unsigned char)message[0])%NMUTEXFILES;
-int channelport= ((channel-'0') > 0)?channel-'0': channel;
+channelport= ((channel-'0') > 0)?channel-'0': channel;
  snprintf(channelfolder+7,4,"%d",channelport);
 strcat(channelfolder,"/");
 strcat(channelfolder,message+6);
@@ -251,27 +252,42 @@ if(fopen(channelfolder,"r")){
 if((file_ats=strrchr(channelfolder,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strcat(filen,file_ats+1);  strcat(channelfolder,filen);}
 else strcat(channelfolder,"1");
 }
-if(!strncmp(message+1,"S0f!",4) || !(fn[channel][index]=fopen(channelfolder,"w"))){
+file_ats=channelfolder;
+if(!strncmp(message+1,"S0f!",4)){
 if((so[channel][index]=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 temp[channel][index].sin_family=AF_INET;
 temp[channel][index].sin_addr.s_addr=inet_addr("127.0.0.1");
-//if(files2write==0) 
 //temp[channel][index].sin_port=htons(30100);
 //else
 temp[channel][index].sin_port=htons(3100+channelport);
 }
-else {
+else if (!(fn[channel][index]=fopen(channelfolder,"w"))){
 char channel4all[40]; strcpy(channel4all,"channel4all/"); strcat(channel4all,message+6);
 if(fopen(channel4all,"r")){ 
 if((file_ats=strrchr(channel4all,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strcat(filen,file_ats+1);  strcat(channel4all,filen);}
 else strcat(channel4all,"1");
 }
-if(!(fn[channel][index]=fopen(channel4all,"w")) && fopen("ttt.t","w"))
-fprintf(stderr,"Please make this program root directory read only if you don't want it to be written or make a folder named channel4all (or the filesharer's channelnumber folder under it for right operations\n");
-fopen(message+6,"w");
+if(!(fn[channel][index]=fopen(channel4all,"w")) && fopen("ttt.t","w")){
+fprintf(stderr,"Please make this program root directory read only if you don't want it to be written or make a folder named channel4all (or the filesharer's channelnumber folder under it for right operation\n");
+
+if(fopen(message+6,"r")){ 
+if((file_ats=strrchr(message+6,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strcat(filen,file_ats+1);  strcat(message+6,filen);}
+else strcat(message+6,"1");
+}
+fn[channel][index]=fopen(message+6,"w");
+file_ats=message+6;
+
+} else   file_ats=channel4all;
 }
 //printf("message+5: %s",message+5);
 } 
+if(fn[channel][index])
+fprintf(stderr,"opening file %s for writing %d\n",file_ats,index);
+else if(so[channel][index])
+ fprintf(stderr,"The file %s is being streamed on udp://127.0.0.1:%d\n",file_ats,3100+channelport);
+else 
+fprintf(stderr,"file can't be opened- ro folder/is not being streamed\n");
+
 if(prev!=index){
 //if(files2write==0) 
 //snprintf(localport,8, "%d",30100);
@@ -288,7 +304,6 @@ fclose(html1);
 id[0]++;
 } }
 files2write++;
-fprintf(stderr,"opening file %s for writing %d\n",channelfolder,index);
 //if(files2write>0)
 //system("vlc udp://127.0.0.2:40121&");
 //else if(files2write> 1) system("vlc udp://127.0.0.3:40122&");
@@ -303,9 +318,9 @@ index=((unsigned char)message[0])%NMUTEXFILES;
 channel=((unsigned char)message[6])%NMUTEXFILES;
 if(files2write && fn[channel][index]!=NULL){fclose(fn[channel][index]);
 fn[channel][index]=NULL;
+fprintf(stderr,"%s %d\n","Closed file",index);
  } 
 files2write--;
-fprintf(stderr,"%s %d\n","Closed file",index);
 if(message[0]=='E')printf("%s\n",message+4);
 count++;
 }
@@ -324,7 +339,13 @@ sendto(so[channel][index],message,BUF_SIZ, 0, (struct sockaddr *) &temp[channel]
 //else //write(so2,message,nextlen[channel][index]); 
 //sendto(so2,message,BUF_SIZ, 0, (struct sockaddr *) &temp2, sizeof(temp2));
 if(nextlen[channel][index]!=BUF_SIZ){
+if(fn[channel][index])
 fprintf(stderr,"%s %d\n","Finished writing file", index);
+else if(so[channel][index])
+ fprintf(stderr,"Finished streaming %s on udp://127.0.0.1:%d\n",file_ats,3100+channelport);
+else 
+fprintf(stderr,"file can't be opened- ro folder/is not being streamed\n");
+
 //fprintf(stdout,"EOF");
 nextlen[channel][index]=BUF_SIZ;}
 }
