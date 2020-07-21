@@ -94,6 +94,8 @@ if(sc==-1) printf("Unable to send, do group exist\n");
 //sock=socket(AF_INET, SOCK_DGRAM,0);
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
  !strcmp(argv[1],"-cf")){
+for(j=2;j<argc && strcmp(argv[j],"-m"); j++) {argv[2]=argv[j];
+printf("%s",argv[j]);
  strcpy(fcomp,"tar cvfz "); int strf=0; char *strf2=  strrchr(argv[2],'/');
 if(strf2)strf=(int)strrchr(strf2,'.');
 else strf= (int)strrchr(argv[2],'.');
@@ -165,8 +167,9 @@ while((n=sendto(sock,remn,7, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) 
 if(sc==-1) printf("Unable to send, do group exist\n");
 }
  }
+argc=3;
 if(sendflag) goto receivelabel;
-}
+} }
 else {
 imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
 imr.imr_interface.s_addr= htonl(INADDR_ANY);
@@ -252,7 +255,6 @@ if(fopen(channelfolder,"r")){
 if((file_ats=strrchr(channelfolder,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strcat(filen,file_ats+1);  strcat(channelfolder,filen);}
 else strcat(channelfolder,"1");
 }
-file_ats=channelfolder;
 if(!strncmp(message+1,"S0f!",4)){
 if((so[channel][index]=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
 temp[channel][index].sin_family=AF_INET;
@@ -275,16 +277,16 @@ if((file_ats=strrchr(message+6,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strc
 else strcat(message+6,"1");
 }
 fn[channel][index]=fopen(message+6,"w");
-file_ats=message+6;
-
-} else   file_ats=channel4all;
+strrchr(channelfolder,'/')[0]='\0'; strcat(channelfolder,"/");
+strcat(channelfolder,message+6);
+} 
 }
 //printf("message+5: %s",message+5);
 } 
 if(fn[channel][index])
-fprintf(stderr,"opening file %s for writing %d\n",file_ats,index);
+fprintf(stderr,"opening file %s for writing %d\n",channelfolder,index);
 else if(so[channel][index])
- fprintf(stderr,"The file %s is being streamed on udp://127.0.0.1:%d\n",file_ats,3100+channelport);
+ fprintf(stderr,"The file %s is being streamed on udp://127.0.0.1:%d\n",channelfolder,3100+channelport);
 else 
 fprintf(stderr,"file can't be opened- ro folder/is not being streamed\n");
 
