@@ -206,18 +206,18 @@ char vid[540]; getcwd(cwdir+4,40);
 receivelabel:
 if(recvonly!=2 && recvonly =='0'){
 if(y!='X' && y!='S' && y!='r' && y!='V'){
-fprintf(stderr,"Receive(R)/Send command(x)/Recievefor now(r/1-9/a-10p-28/)/Send file(s/v-stream)/quit(q)?\n(R/x/r[1-9a-p]/s[v]/q)");
+fprintf(stderr,"Receive(R)/Send command(s)/Recievefor now(r/1-9/a-10p-28/)/Send file(x/v-stream)/quit(q)?\n(R/s/r[1-9a-p]/x[v]/q)");
 while((x= getchar())!='\n')if(x!='r') y= toupper(x);fprintf(stderr,"\n");
 if(y>='0' && y<='P'){if(y<='9') recvonly=y+1; else recvonly=  y-6;} 
   if(recvonly>'0' && recvonly<=('W')){ recvonly--;}
 if(y=='R')recvonly=2;
  if (y=='S' || y=='X' || y=='V'){
  system("ls");
-if(y=='S'|| y=='V')
+if(y=='X'|| y=='V')
 printf("Please write a filename:");
-else if(y=='X') printf("$:~"); fgets(filen,30,stdin);
+else if(y=='S') printf("$:~"); fgets(filen,30,stdin);
 strrchr(filen,'\n')[0]='\0'; 
-if(y=='S')
+if(y=='X')
 argv[1]="-F";
 else if(y=='V') argv[1]="-f";
 else
