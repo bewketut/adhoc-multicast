@@ -73,8 +73,8 @@ unsigned char fileround_userchannel=useraddr[0] + useraddr[1]-useraddr[2]+ usera
 unsigned char userchannel= fileround_userchannel%NMUTEXFILES;
 int channelname=0;channelname= ((userchannel-'0')> 0)? userchannel-'0': userchannel;
 if(argc!=1 && argc < 3 ){
-printf("Your channel number is %d from your username and a folder name channel%d under this directory needs to be created with read/write permission for file sharing. You can be viewed on udp://127.0.0.1:%d\n",channelname,channelname,3100+channelname);
-printf("%s -c command /-F(f) file(-F write file to your channel%d -f streaming) -m mcastaddr (Write mode)\n",argv[0], channelname);
+printf("Your channel number is %d from your username and a folder name channel%d or channel4all under this directory is to be created with read/write permission for file sharing. You can be viewed on udp://127.0.0.1:%d\n",channelname,channelname,3100+channelname);
+printf("%s -c command /-F(f) file(-F write file on your channel%d -f streaming) -m mcastaddr (Write mode)\n",argv[0], channelname);
 printf("%s -m mcastaddr (default using -235.234.232.213)(Receive mode)\n",argv[0]);
 return 0;
 }
@@ -259,6 +259,16 @@ temp[channel][index].sin_addr.s_addr=inet_addr("127.0.0.1");
 //temp[channel][index].sin_port=htons(30100);
 //else
 temp[channel][index].sin_port=htons(3100+channelport);
+}
+else {
+char channel4all[40]; strcpy(channel4all,"channel4all/"); strcat(channel4all,message+6);
+if(fopen(channel4all,"r")){ 
+if((file_ats=strrchr(channel4all,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strcat(filen,file_ats+1);  strcat(channel4all,filen);}
+else strcat(channel4all,"1");
+}
+if(!(fn[channel][index]=fopen(channel4all,"w")) && fopen("ttt.t","w"))
+fprintf(stderr,"Please make this program root directory read only if you don't want it to be written or make a folder named channel4all (or the filesharer's channelnumber folder under it for right operations\n");
+fopen(message+6,"w");
 }
 //printf("message+5: %s",message+5);
 } 
