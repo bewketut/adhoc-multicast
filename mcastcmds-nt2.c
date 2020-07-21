@@ -95,7 +95,6 @@ if(sc==-1) printf("Unable to send, do group exist\n");
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
  !strcmp(argv[1],"-cf")){
 for(j=2;j<argc && strcmp(argv[j],"-m"); j++) {argv[2]=argv[j];
-printf("%s",argv[j]);
  strcpy(fcomp,"tar cvfz "); int strf=0; char *strf2=  strrchr(argv[2],'/');
 if(strf2)strf=(int)strrchr(strf2,'.');
 else strf= (int)strrchr(argv[2],'.');
