@@ -268,7 +268,7 @@ if((file_ats=strrchr(channel4all,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");st
 else strcat(channel4all,"1");
 }
 if(!(fn[channel][index]=fopen(channel4all,"w")) && fopen("ttt.t","w")){
-fprintf(stderr,"Please make this program root directory read only if you don't want it to be written or make a folder named channel4all (or the filesharer's channelnumber folder under it for right operation\n");
+fprintf(stderr,"Please make this program root directory read only if you don't want it to be written or make a folder named channel4all (or the filesharer's channelnumber folder under it for right operation)\n");
 
 if(fopen(message+6,"r")){ 
 if((file_ats=strrchr(message+6,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strcat(filen,file_ats+1);  strcat(message+6,filen);}
