@@ -276,7 +276,7 @@ if((file_ats=strrchr(message+6,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strc
 else strcat(message+6,"1");
 }
 fn[channel][index]=fopen(message+6,"w");
-strrchr(channelfolder,'/')[0]='\0'; strcat(channelfolder,"/");
+strrchr(channelfolder,'/')[1]='\0'; 
 strcat(channelfolder,message+6);
 } 
 }
