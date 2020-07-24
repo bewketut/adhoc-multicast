@@ -74,7 +74,7 @@ unsigned char userchannel= fileround_userchannel%NMUTEXFILES;
 int channelname=0;channelname= ((userchannel-'0')> 0)? userchannel-'0': userchannel;
 if(argc!=1 && argc < 3 ){
 printf("Your channel number is %d from your username and a folder name channel%d or channel4all under this directory is to be created with read/write permission for file sharing. You can be viewed on udp://127.0.0.1:%d\n",channelname,channelname,3100+channelname);
-printf("%s -c command /-F(f) file(-F write file on your channel%d -f streaming) -m mcastaddr (Write mode)\n",argv[0], channelname);
+printf("%s -c command or -F(f) file(-F write file on your channel%d folder -f streaming) -m mcastaddr (Write mode)\n",argv[0], channelname);
 printf("%s -m mcastaddr (default using -235.234.232.213)(Receive mode)\n",argv[0]);
 return 0;
 }
@@ -166,7 +166,6 @@ while((n=sendto(sock,remn,7, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) 
 if(sc==-1) printf("Unable to send, do group exist\n");
 }
  }
-argc=3;
 if(sendflag) goto receivelabel;
 } }
 else {
@@ -222,7 +221,7 @@ argv[1]="-F";
 else if(y=='V') argv[1]="-f";
 else
  argv[1]="-c"; 
-argv[2]=filen;
+argv[2]=filen; argc=3;
 sendflag=1;
 goto sendlabel;
 }}else y='l';
@@ -269,7 +268,7 @@ if((file_ats=strrchr(channel4all,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");st
 else strcat(channel4all,"1");
 }
 if(!(fn[channel][index]=fopen(channel4all,"w")) && fopen("ttt.t","w")){
-fprintf(stderr,"Please make this program root directory read only if you don't want it to be written or make a folder named channel4all (or the filesharer's channelnumber folder under it for right operation)\n");
+fprintf(stderr,"Please make this progam root folder read only. Create a folder named channel4all (or the filesharer's channelfolder) under it for right operations of file sharing and multicast streaming.This option is left for network managers use!!:$\n");
 
 if(fopen(message+6,"r")){ 
 if((file_ats=strrchr(message+6,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strcat(filen,file_ats+1);  strcat(message+6,filen);}
