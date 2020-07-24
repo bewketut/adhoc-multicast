@@ -73,7 +73,7 @@ unsigned char fileround_userchannel=useraddr[0] + useraddr[1]-useraddr[2]+ usera
 unsigned char userchannel= fileround_userchannel%NMUTEXFILES;
 int channelname=0;channelname= ((userchannel-'0')> 0)? userchannel-'0': userchannel;
 if(argc!=1 && argc < 3 ){
-printf("Your channel number is %d from your username and a folder name channel%d or channel4all under this directory is to be created with read/write permission for file sharing. You can be viewed on udp://127.0.0.1:%d\n",channelname,channelname,3100+channelname);
+printf("Your channel number is %d from your username and a folder name channel%d or channel4all under this directory is to be created with read/write permission for file sharing. You can be viewed on udp://127.0.0.1:%d with a media player.\n",channelname,channelname,3100+channelname);
 printf("%s -c command or -F(f) file(-F write file on your channel%d folder -f streaming) -m mcastaddr (Write mode)\n",argv[0], channelname);
 printf("%s -m mcastaddr (default using -235.234.232.213)(Receive mode)\n",argv[0]);
 return 0;
