@@ -328,6 +328,9 @@ else if(files2write){
 prev=index;
 channel=((unsigned char) message[MCASTBUF_SIZ-2])%NMUTEXFILES;
 index=((unsigned char) message[MCASTBUF_SIZ-1])%NMUTEXFILES;
+channelport= ((channel-'0') > 0)?channel-'0': channel;
+ snprintf(channelfolder+7,4,"%d",channelport);
+strcat(channelfolder,"/");
 message[MCASTBUF_SIZ-1]=0;
 message[MCASTBUF_SIZ-2]=0;
 if(index>0){
@@ -342,7 +345,7 @@ if(nextlen[channel][index]!=BUF_SIZ){
 if(fn[channel][index])
 fprintf(stderr,"%s %d\n","Finished writing file", index);
 else if(so[channel][index])
- fprintf(stderr,"Finished streaming %s on udp://127.0.0.1:%d\n",file_ats,3100+channelport);
+ fprintf(stderr,"Finished streaming %s%d on udp://127.0.0.1:%d\n",channelfolder,index,3100+channelport);
 else 
 fprintf(stderr,"file can't be opened- ro folder/is not being streamed\n");
 
