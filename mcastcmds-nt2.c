@@ -146,7 +146,7 @@ do {numr=fread(buffer,sizeof(char),size,fp);} while(numr!=0);
   d=buffer[i*BUF_SIZ+MCASTBUF_SIZ-2];
 buffer[i*BUF_SIZ+MCASTBUF_SIZ-1]=filehash3;
 buffer[i*BUF_SIZ+MCASTBUF_SIZ-2]= userchannel;
-while((n=sendto(sock,buffer+i*BUF_SIZ,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
+while((n=sendto(sock,buffer+i*BUF_SIZ,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 buffer[i*BUF_SIZ+MCASTBUF_SIZ-1]=c;
 buffer[i*BUF_SIZ+MCASTBUF_SIZ-2]=d;
 do {numr=fread(buffer,sizeof(char),size,fp);} while(numr!=0);
@@ -160,7 +160,7 @@ while((sc=sendto(sock,remn,7, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
 if(sc!=-1) break;
 buffer[i*BUF_SIZ+MCASTBUF_SIZ-1]=filehash3;
 buffer[i*BUF_SIZ+MCASTBUF_SIZ-2]=userchannel;
-while((n=sendto(sock,buffer+i*BUF_SIZ,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
+while((n=sendto(sock,buffer+i*BUF_SIZ,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
 remn[3]='f'; //EOf 
 while((n=sendto(sock,remn,7, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 if(sc==-1) printf("Unable to send, do group exist\n");
@@ -180,9 +180,9 @@ if(strrchr(argv[0],'.'))argstr=strrchr(argv[0],'/');
 fprintf(stderr,"%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do ",argstr," -F filename or ",argstr," -c commandname\n on another terminal or computer on the network.\n waiting...");
 FILE *fn[NMUTEXFILES][NMUTEXFILES]; 
 unsigned char fileindex=0,channel=0, prev;//fflag,k=0,*cm;
- char *chead,*filen,y='x',x,*cwdir= (char *) malloc(sizeof(char)*40);
+ char *chead,*filen,y='x',x,*cwdir= (char *) malloc(sizeof(char)*400);
 char *file_ats, *warning=(char *)malloc(sizeof(char)*85); strcpy(warning,"EEOf");
-char channelfolder[40]; strcpy(channelfolder,"channel");
+char channelfolder[90]; strcpy(channelfolder,"channel");
 int nextlen[NMUTEXFILES][NMUTEXFILES],recvonly='0',count=0, files2write=0; for(i=0;i<NMUTEXFILES;i++){for(j=0; j< NMUTEXFILES; j++)nextlen[i][j]=BUF_SIZ; fn[i][j]=NULL;}
 filen= (char *)malloc(sizeof(char)*20);
 strcpy(cwdir,"cd "); FILE *html=NULL,*html1=NULL; 
@@ -239,7 +239,7 @@ if(count==1) count--;
 mlen=sizeof(src);
  while(1){
 if(!files2write && count==1) goto receivelabel;
-while((i=recvfrom(sock, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &src , &mlen))!=0)
+while((i=recvfrom(sock, message, MCASTBUF_SIZ+1, 0, (struct sockaddr *) &src , &mlen))!=0)
 if(i!=-1) break;
 if(!strncmp(message+1,"S0F!",4)||!strncmp(message+1,"S0f!",4)){ 
 channel= ((unsigned char)message[5])%NMUTEXFILES;
@@ -313,17 +313,6 @@ fileindex=((unsigned char)message[0])%NMUTEXFILES;
 channel=((unsigned char)message[6])%NMUTEXFILES;
  nextlen[channel][fileindex]=((unsigned char)message[4])*256 + ((unsigned char)message[5]) ;
 }
-else if(!strncmp(message+1,"EOf",3)){
-fileindex=((unsigned char)message[0])%NMUTEXFILES;
-channel=((unsigned char)message[6])%NMUTEXFILES;
-if(files2write && fn[channel][fileindex]!=NULL){fclose(fn[channel][fileindex]);
-fn[channel][fileindex]=NULL;
-fprintf(stderr,"%s %d\n","Closed file",fileindex);
- } 
-files2write--;
-if(message[0]=='E')printf("%s\n",message+4);
-count++;
-}
 else if(files2write){
 prev=fileindex;
 channel=((unsigned char) message[MCASTBUF_SIZ-2])%NMUTEXFILES;
@@ -331,24 +320,28 @@ fileindex=((unsigned char) message[MCASTBUF_SIZ-1])%NMUTEXFILES;
 channelport= ((channel-'0') > 0)?channel-'0': channel;
  snprintf(channelfolder+7,4,"%d",channelport);
 strcat(channelfolder,"/");
-message[MCASTBUF_SIZ-1]=0;
 message[MCASTBUF_SIZ-2]=0;
 if(fileindex>0){
 if(fn[channel][fileindex])
 fwrite(message,1,nextlen[channel][fileindex],fn[channel][fileindex]);
 else 
-sendto(so[channel][fileindex],message,BUF_SIZ, 0, (struct sockaddr *) &temp[channel][fileindex], sizeof(temp[channel][fileindex]));
+sendto(so[channel][fileindex],message,BUF_SIZ+1, 0, (struct sockaddr *) &temp[channel][fileindex], sizeof(temp[channel][fileindex]));
      //  write(so,message,nextlen[channel][fileindex]); 
 //else //write(so2,message,nextlen[channel][fileindex]); 
 //sendto(so2,message,BUF_SIZ, 0, (struct sockaddr *) &temp2, sizeof(temp2));
 if(nextlen[channel][fileindex]!=BUF_SIZ){
-if(fn[channel][fileindex])
-fprintf(stderr,"%s %d\n","Finished writing file", fileindex);
+if(fn[channel][fileindex]!=NULL){fclose(fn[channel][fileindex]);
+fn[channel][fileindex]=NULL;
+fprintf(stderr,"%s %d","Finished writing file.", fileindex);
+fprintf(stderr,"%s %d\n","Closed file",fileindex);
+ } 
 else if(so[channel][fileindex])
  fprintf(stderr,"Finished streaming %s%d on udp://127.0.0.1:%d\n",channelfolder,fileindex,3100+channelport);
 else 
 fprintf(stderr,"file can't be opened- ro folder/is not being streamed\n");
-
+files2write--;
+if(message[0]=='E')printf("%s\n",message+4);
+count++;
 //fprintf(stdout,"EOF");
 nextlen[channel][fileindex]=BUF_SIZ;}
 }
@@ -359,7 +352,7 @@ if(!strncmp(message,"-cf",3))
 printf("%s:-%s", message+3,chead+1);
 else printf("%s:-%s\n", message+2,chead+1);
 if(strchr(chead+1,'/')&& !strstr(chead+1,"//")){
-sendto(sock,strcat(strcat(warning,"Warning error: Access is limited to the program folder ('/' forbidden)_no_command_executed!!~from~"),useraddr),125, 0, (struct sockaddr *) &mcast, sizeof(mcast)); count++;}
+sendto(sock,strcat(strcat(warning,"Warning error: Access is limited to the program folder ('//' forbidden)_no_command_executed!!~from~"),useraddr),125, 0, (struct sockaddr *) &mcast, sizeof(mcast)); count++;}
 else {
 if(strstr(chead+1,"cd ~")||strstr(chead+1,"cd ..")) system(cwdir);
 else
@@ -373,7 +366,7 @@ printf("%s:~%s", message+3,chead+1);
 else 
 printf("%s:~%s\n", message+2,chead+1);
 if(strchr(chead+1,'/')&& !strstr(chead+1,"//")){
-sendto(sock,strcat(strcat(warning,"Warning error: Access is limited to the program folder ('/' forbidden)_no_command_executed!!~from~"),strcat(useraddr,cwdir+4)),150, 0, (struct sockaddr *) &mcast, sizeof(mcast));//y='w'; count++;
+sendto(sock,strcat(strcat(warning,"Warning error: Access is limited to the program folder ('//' forbidden)_no_command_executed!!~from~"),strcat(useraddr,cwdir+4)),150, 0, (struct sockaddr *) &mcast, sizeof(mcast));//y='w'; count++;
 }
 else {
 if(strstr(chead+1,"cd ~")||strstr(chead+1,"cd ..")) system(cwdir);
@@ -382,7 +375,7 @@ system(chead+1);count++; }
 }
 else { 
 // if(strncmp(message,"-f",2) && k==0){ system("totem fd://0 &")|| system("vlc fd://0 &");k=1;}
- fwrite(message,1,nextlen[channel][fileindex], stdout);
+ ;//fwrite(message,1,nextlen[channel][fileindex], stdout);
 }
 }
 //fclose(fn[channel][fileindex]); fn[channel][fileindex]=NULL;
