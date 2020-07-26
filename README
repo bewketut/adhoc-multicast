@@ -44,7 +44,9 @@ temp= data[BUF_SIZ] //the next start of data array start from 0 so the end of to
 2.Assign control byte as data[BUF_SIZ]= control byte(filename for example to have mutual exclusive writes of files on a multicast socket)
 3. Write the socket with data of size BUF_SIZ+1.Send the BUF_SIZed data part first then reassign temp  data[BUF_SIZ]=temp so datafile rewritten as was.then send from BUF_SIZ to 2*BUF_SIZ repeating the process from that on until file or data is fully sent. 
 mcastcmds-nt2 (employes the above application level filtering mechanism)
-========================
+======================== (works for android too).
+For android...1.download a terminal emulator from the app store
+2. then on the commandline cd ~ . 3. cp /sdcard/Download/mcastcmds_mobile mcastcmds (whereever mcastcmds_android was downloaded and mcastshare for commandname if you like).4.run the program anywhere as: ~/mcastcmds (or ~/mcastshare if you changed the name)  (e.g. ~/mcastcmds --help). 
 This allows to run commands on remote multicast joined host and importantly multicast file transfers. Who knows maybe this
 could be used for android devices..imagine a lecturer using this app sending all "multicast joined" students lecture notes
 without "copy from this one student or from the one who has it". I have no new computer and android building tools are
