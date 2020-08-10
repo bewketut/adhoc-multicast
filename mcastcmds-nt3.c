@@ -143,8 +143,8 @@ if(!peern[0]){ fprintf(stderr,"Connect first to the other devices via wifi-Direc
 //memory mapped i/o for sending
 //and writen for receiver. 
 //multicast ttl for two d/t networks
-src.sin_family=AF_INET;//
-src.sin_port=htons(MCASTP);
+tmp2.sin_family=src.sin_family=AF_INET;//
+tmp2.sin_port=src.sin_port=htons(MCASTP);
 //src.sin_addr.s_addr=inet_addr(addr);//htonl(INADDR_ANY);
 //if(peerf)
 src.sin_addr.s_addr=inet_addr(peern);//htonl(INADDR_ANY);
@@ -390,12 +390,11 @@ if(!(cnt%25)){
 	if(!srcflag){
                if(!cnt){
 		if((sock2=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
-			src.sin_addr.s_addr=htonl(INADDR_ANY); //inet_addr(addr);//
+			tmp2.sin_addr.s_addr=htonl(INADDR_ANY); //inet_addr(addr);//
                   
-		bind(sock2, (struct sockaddr *) &src, sizeof(src));		
+		bind(sock2, (struct sockaddr *) &tmp2, sizeof(tmp2));		
 //printf("defaultttl፡=%d",IP_DEFAULT_MULTICAST_LOOP);
 //inet_addr("192.168.43.1");// 
-                       src.sin_addr.s_addr=inet_addr(peern);
                             }
 i=setsockopt(sock2, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &imr, sizeof(struct ip_mreq));
 if(i < 0) {printf("Cannot join Multicast Group. Waiting in unicast. is this %sself is connection server host device-switch %s.(?)\n",useraddr,addr);
@@ -405,7 +404,7 @@ if(i < 0) {printf("Cannot join Multicast Group. Waiting in unicast. is this %sse
 	           srcflag=1;
 }}}  cnt++;
 //printf("srcaddr:%s\n",htonl(src.sin_addr.s_addr));
-mlen=sizeof(src);
+mlen=sizeof(tmp2);
  while(1){
 if(!files2write && count==1) goto receivelabel;
 while((i=recvfrom(sock2, message, MCASTBUF_SIZ+1, 0, (struct sockaddr *) &tmp2 , &mlen))!=0)
