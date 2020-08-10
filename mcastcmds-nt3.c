@@ -130,7 +130,7 @@ strchr(addr,'\n')[0]='\0';
 strchr(addr,' ')[0]='\0';
 
 //char peerf=0; 
-psfp= popen("ip neigh show | grep -o 192.* | grep -v FAILED","r");
+psfp= popen("ip neigh show | grep -o 192.* | grep -v FAILED | tail -1","r");
  fgets(peern,INET_ADDRSTRLEN,psfp);
 if((addr2=strchr(peern,' ')))
  addr2[0]='\0';
