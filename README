@@ -43,10 +43,15 @@ add a control byte (for file exclusion)on the last of to be sent BUF_SIZed data.
 temp= data[BUF_SIZ] //the next start of data array start from 0 so the end of tobe data  is data[BUF_SIZ-1](BUF_SIZ minus 1),
 2.Assign control byte as data[BUF_SIZ]= control byte(filename for example to have mutual exclusive writes of files on a multicast socket)
 3. Write the socket with data of size BUF_SIZ+1.Send the BUF_SIZed data part first then reassign temp  data[BUF_SIZ]=temp so datafile rewritten as was.then send from BUF_SIZ to 2*BUF_SIZ repeating the process from that on until file or data is fully sent. 
-mcastcmds-nt2 (employes the above application level filtering mechanism)
-======================== (works for android too --you can easily share files by your wifi receiver (send and receive ...etc now. rename the file s.th like mh as a command).
+mcastcmds-nt3 (employes the above application level filtering mechanism)
+======================== (works for android too --you can easily share files by your wifi receiver (send and receive ...etc now. ).
 For android...1.download a terminal emulator from the app store
-2. then on the commandline cd ~ . 3. cp /sdcard/Download/mcastcmds_mobile mcastcmds (whereever mcastcmds_android was downloaded and mcastshare for commandname if you like).4.run the program anywhere as: ~/mcastcmds (or ~/mcastshare if you changed the name)  (e.g. ~/mcastcmds --help). 
+2. then on the commandline 'cp /sdcard/Download/mcastcmds_mobile ~/mcastcmds (or~/mh) (whereever mcastcmds_android was downloaded and mcastshare or mh for commandname if you like).
+3. chmod 755 ~/mh   (~/mcastcmds or the name )
+4.run the program anywhere as: ~/mcastcmds (or ~/mcastshare or ~/mh if you changed the name) 
+4. put an alias at the starup shell if you like(alias mh= '~/mh'; then  (e.g. ~/mcastcmds --help).
+The mh -f file_name.mp4  has good signs that it will play on network. tried it using mxplayer (opening url rtp://127.0.0.1:40xx the ~/mh receiver has to be on.). complained it has no the codecs. Choose your own player that can play rtp (for mp4s) but ...tested it on androids. 
+It is now fully multicast for the 'wif-direct'  host and client.    
 This allows to run commands on remote multicast joined host and importantly multicast file transfers. Who knows maybe this
 could be used for android devices..imagine a lecturer using this app sending all "multicast joined" students lecture notes
 without "copy from this one student or from the one who has it". I have no new computer and android building tools are

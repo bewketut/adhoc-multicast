@@ -20,9 +20,10 @@ AM_DEPFLAGS     = -Wp,-MMD,$(@D)/.$(@F).d,-MT,$@
 obj-m += xt_MCAST.o #	compat_xtables.o 
 all: lib 
 	make -C	/lib/modules/`uname -r`/build M=`pwd`
-mcmds: mcastcmds-nt3.c
-	${CCLD} ${regular_CFLAGS} -o mcastcmds mcastcmds-nt3.c
-	${CL} ${regular_CFLAGS} -o mcastcmdsfast mcastcmds-nt3.c
+
+mcast:  mcastcmds-nt3.c
+	${CCLD} ${AM_CFLAGS} -o mcastcmds $<
+	${CL} ${AM_CFLAGS} -o mcastcmdsfast $<
 clean:
 	make -C /lib/modules/`uname -r`/build M=`pwd` clean
 	rm -rf libxt_MCAST.so

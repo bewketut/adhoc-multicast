@@ -102,12 +102,29 @@ mcast.sin_port=htons(MCASTP);
 char *fcomp= (char *)malloc(sizeof(char *)*70);
 int fcompflag=0; unsigned char srcflag=0;
 
-if((sock=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
+uid_t user;
+user=getuid();
+struct passwd *user_p=getpwuid(user); 
+char *host= (char *)malloc(sizeof(char)*15);
+gethostname(host,255);
+
+char *useraddr= strcat(strcat(user_p->pw_name,"@"),host);
+useraddr=strcat(useraddr,"~");
+unsigned char fileround_userchannel=useraddr[0] + useraddr[1]-useraddr[2]+ useraddr[strlen(useraddr)-(strlen(useraddr)/2)] - useraddr[strlen(useraddr)-(strlen(useraddr)/3)] + useraddr[strlen(useraddr)- (strlen(useraddr)/4)] - useraddr[strlen(useraddr)-(strlen(useraddr)/5)] ;
+unsigned char userchannel= fileround_userchannel%NMUTEXFILES;
+int channelname=0;channelname= ((userchannel-'0')> 0)? userchannel-'0': userchannel;
+if(argc!=1 && argc < 3 ){
+printf("Your channel is %d from ur username and a folder name channel%d or channel4all in this directory be with read/write permission 4file_sharing. You can be viewed at rtp://127.0.0.1:%d with a media player.\n",channelname,channelname,MCASTP+channelname);
+printf("%s -c command or -F(f) files(-F write files on your channel%d folder -f streaming) -m[n] mcastaddr[or n-number] (Write mode)\n",argv[0], channelname);
+printf("%s -m[n] mcastaddr[or n] (default using -227.226.225.224)(Receive mode)\n",argv[0]);
+return 0;
+}
+ if((sock=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
  FILE *psfp= popen("ip route show | grep -o src.*192.*","r"); 
    char *addr= (char *)malloc(sizeof(char *)*(5+INET_ADDRSTRLEN)),*peern=(char *)malloc(sizeof(char *)*INET_ADDRSTRLEN),*addr2;
 //addr=strcpy(addr+4,"127.0.0.1");
 if(psfp && fgets(addr,INET_ADDRSTRLEN+5,psfp)!=NULL) pclose(psfp);
-else {fprintf(stderr,"There is no network interface up. run ifconfig.\n"); exit(0);}
+else {fprintf(stderr,"Connect first via wifi-direct or hotspot with the other devices. run ifconfig.\n"); exit(0);}
 addr+=4;
 strchr(addr,'\n')[0]='\0';
 strchr(addr,' ')[0]='\0';
@@ -118,7 +135,7 @@ psfp= popen("ip neigh show | grep -o 192.* | grep -v FAILED","r");
 if((addr2=strchr(peern,' ')))
  addr2[0]='\0';
  pclose(psfp);
-if(!peern[0]){ fprintf(stderr,"Connect first. It is still in wait to receive or send. Your ip is:%s for this session.\n",addr); peern=addr;}
+if(!peern[0]){ fprintf(stderr,"Connect first to the other devices via wifi-Director Wifi hotspot. The device's ip is:%s for this session. Restart this program if this error shows.\n",addr); peern=addr;}
 //if(strcmp(strrchr(addr,'.')+1,"1")) //if server_ x.x.x.1
 //peerf=1;
 //printf("peerf:%d peerip:%s\n",peerf,peern);
@@ -156,24 +173,7 @@ src.sin_addr.s_addr=htonl(abuf) & 0xff0000ff;
 //src.sin_addr.s_addr=htonl(abuf);
 //printf("inaddr:%s %s\n",addr,hs->h_name);
 
-uid_t user;
-user=getuid();
-struct passwd *user_p=getpwuid(user); 
-char *host= (char *)malloc(sizeof(char)*15);
-gethostname(host,255);
 
-char *useraddr= strcat(strcat(user_p->pw_name,"@"),host);
-useraddr=strcat(useraddr,"~");
-unsigned char fileround_userchannel=useraddr[0] + useraddr[1]-useraddr[2]+ useraddr[strlen(useraddr)-(strlen(useraddr)/2)] - useraddr[strlen(useraddr)-(strlen(useraddr)/3)] + useraddr[strlen(useraddr)- (strlen(useraddr)/4)] - useraddr[strlen(useraddr)-(strlen(useraddr)/5)] ;
-unsigned char userchannel= fileround_userchannel%NMUTEXFILES;
-int channelname=0;channelname= ((userchannel-'0')> 0)? userchannel-'0': userchannel;
-if(argc!=1 && argc < 3 ){
-printf("Your channel is %d from ur username and a folder name channel%d or channel4all in this directory be with read/write permission 4file_sharing. You can be viewed at udp://127.0.0.1:%d with a media player.\n",channelname,channelname,MCASTP+channelname);
-printf("%s -c command or -F(f) files(-F write files on your channel%d folder -f streaming) -m[n] mcastaddr[or n-number] (Write mode)\n",argv[0], channelname);
-printf("%s -m[n] mcastaddr[or n] (default using -227.226.225.224)(Receive mode)\n",argv[0]);
-return 0;
-}
- 
 
 //inet_addr("192.168.43.1");// 
 
@@ -328,7 +328,7 @@ FILE  *fn[NMUTEXFILES][NMUTEXFILES];
 unsigned char findexmn=0,channel=0, prev;//fflag,k=0,*cm;
  char *chead,*filen,y='x',x,*cwdir= (char *) malloc(sizeof(char)*400);
 char *file_ats, *warning=(char *)malloc(sizeof(char)*85); strcpy(warning,"EEOf");
-char channelfolder[130]; strcpy(channelfolder,"channel");
+char channelfolder[130]; strcpy(channelfolder,"channel"); c=0;
 int nextlen[NMUTEXFILES][NMUTEXFILES],recvonly='0',count=0, cnt=0, files2write=0; for(i=0;i<NMUTEXFILES;i++){for(j=0; j< NMUTEXFILES; j++)nextlen[i][j]=BUF_SIZ; fn[i][j]=NULL;}
 filen= (char *)malloc(sizeof(char)*20);
 strcpy(cwdir,"cd "); FILE *html=NULL,*html1=NULL; 
@@ -384,17 +384,18 @@ recvonly--;
 //if(count== 1) 
 //concat(concat("vlc",inetadr),":40121"))
  
-//else if(files2write> 0) system("vlc udp://127.0.0.3:40122&");
+//else if(files2write> 0) system("vlc rtp://127.0.0.3:40122&");
 if(count==1) count--;
 if(!(cnt%25)){
 	if(!srcflag){
                if(!cnt){
 		if((sock2=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
-			src.sin_addr.s_addr=htonl(INADDR_ANY); //inet_addr(addr);//////
+			src.sin_addr.s_addr=htonl(INADDR_ANY); //inet_addr(addr);//
                   
 		bind(sock2, (struct sockaddr *) &src, sizeof(src));		
 //printf("defaultttl፡=%d",IP_DEFAULT_MULTICAST_LOOP);
 //inet_addr("192.168.43.1");// 
+                       src.sin_addr.s_addr=inet_addr(peern);
                             }
 i=setsockopt(sock2, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &imr, sizeof(struct ip_mreq));
 if(i < 0) {printf("Cannot join Multicast Group. Waiting in unicast. is this %sself is connection server host device-switch %s.(?)\n",useraddr,addr);
@@ -407,12 +408,17 @@ if(i < 0) {printf("Cannot join Multicast Group. Waiting in unicast. is this %sse
 mlen=sizeof(src);
  while(1){
 if(!files2write && count==1) goto receivelabel;
-while((i=recvfrom(sock2, message, MCASTBUF_SIZ+1, 0, (struct sockaddr *) &src , &mlen))!=0)
+while((i=recvfrom(sock2, message, MCASTBUF_SIZ+1, 0, (struct sockaddr *) &tmp2 , &mlen))!=0)
 if(i!=-1) break;
 
 if((message[MCASTBUF_SIZ-3]==1) && !srcflag) {
 message[MCASTBUF_SIZ-3]=0;
+sendto(sock2,message,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &src, sizeof(src));
 sendto(sock2,message,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast));
+if(c==0){
+fprintf(stderr,"You are chosen by the admin a manager of the group  for data replication. Make the receive wait and not close it/(not end it). You can disconnect if you don't want.\n"); 
+c=1;
+  }
 }
 else if(!strncmp(message+1,"S0F!",4)||!strncmp(message+1,"S0f!",4)){ 
 channel= ((unsigned char)message[5])%NMUTEXFILES;
@@ -457,14 +463,14 @@ strcat(channelfolder,message+6);
 if(fn[channel][findexmn])
 fprintf(stderr,"opening file %s for writing %d\n",channelfolder,findexmn);
 else if(so[channel][findexmn])
- fprintf(stderr,"The file %s is being streamed on udp://127.0.0.1:%d\n",channelfolder,MCASTP+channelport);
+ fprintf(stderr,"The file %s is being streamed on rtp://127.0.0.1:%d\n",channelfolder,MCASTP+channelport);
 else if((so[channel][findexmn]=socket(AF_INET, SOCK_DGRAM,0))>0){
 temp[channel][findexmn].sin_family=AF_INET;
 temp[channel][findexmn].sin_addr.s_addr=inet_addr("127.0.0.1");
 //temp[channel][findexmn].sin_port=htons(30100);
 //else
 temp[channel][findexmn].sin_port=htons(MCASTP+channelport);
- fprintf(stderr,"File can't be opened- ro folder. The file %s is being streamed on udp://127.0.0.1:%d\n",channelfolder,MCASTP+channelport);}
+ fprintf(stderr,"File can't be opened- ro folder. The file %s is being streamed on rtp://127.0.0.1:%d\n",channelfolder,MCASTP+channelport);}
 else 
 fprintf(stderr,"file can't be opened- ro folder/is not being streamed\n");
 
@@ -475,18 +481,18 @@ if(prev!=findexmn){
 html1=fopen("index.htm","a");
 if(html1){
 strcpy(vid,"<video  style='margin-left:3%;' width='100' height='330' autoplay='' controls='' id='thevid");strcat(vid,id); strcat(vid,"'><source src='");
-strcat(vid,"udp://127.0.0.1:");strcat(vid,localport);  
+strcat(vid,"rtp://127.0.0.1:");strcat(vid,localport);  
  strcat(vid,"'></video><button onclick='document.querySelector(\"#thevid");
 strcat(vid,id); strcat(vid,"\").src=\"");
-strcat(vid,"udp://127.0.0.1:");strcat(vid,localport);  strcat(vid,"\"'>Update now</button>"); 
+strcat(vid,"rtp://127.0.0.1:");strcat(vid,localport);  strcat(vid,"\"'>Update now</button>"); 
 fprintf(html1,"%s",vid);
 fclose(html1);
 id[0]++;
 } }
 files2write++;
 //if(files2write>0)
-//system("vlc udp://127.0.0.2:40121&");
-//else if(files2write> 1) system("vlc udp://127.0.0.3:40122&");
+//system("vlc rtp://127.0.0.2:40121&");
+//else if(files2write> 1) system("vlc rtp://127.0.0.3:40122&");
 }
 else if(!strncmp(message+1,"EOL",3)){
 findexmn=((unsigned char)message[0])%NMUTEXFILES;
@@ -517,7 +523,7 @@ fn[channel][findexmn]=NULL;
 fprintf(stderr,"%s %d\n","Finished writing and just closed file ",findexmn);
  } 
 else if(so[channel][findexmn])
- fprintf(stderr,"Finished streaming %s%d on udp://127.0.0.1:%d\n",channelfolder,findexmn,MCASTP+channelport);
+ fprintf(stderr,"Finished streaming %s%d on rtp://127.0.0.1:%d\n",channelfolder,findexmn,MCASTP+channelport);
 else 
 fprintf(stderr,"file can't be opened- ro folder/or is not being streamed\n");
 files2write--;
