@@ -63,8 +63,8 @@ struct srcmutexfiles {
 int main(int argc, char **argv){
 struct sockaddr_in src,temp[NMUTEXFILES],mcast,tmp2, *listadr;
 struct in_addr mcastaddr;
- int so[NMUTEXFILES][NMUTEXFILES],sc,i,sock,sock2,n;
-unsigned int ttl,k; socklen_t j,mlen;  
+int so[NMUTEXFILES][NMUTEXFILES],sc,i,sock,sock2,n;
+unsigned int ttl,  k; socklen_t j, mlen;  
 char message[MCASTBUF_SIZ];
 unsigned char c=0, d;
 FILE *fp;
@@ -182,12 +182,13 @@ src.sin_addr.s_addr=htonl(abuf) & 0xff0000ff;
 
 if(argc>2 && strncmp(argv[1],"-m",2)){
 sendlabel:
+src.sin_addr.s_addr=htonl(INADDR_ANY);
 bind(sock, (struct sockaddr *) &src, sizeof(src));
 //src=src;
 setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));// IP_DEFAULT_MULTICAST_TTL
 /*setsockopt(sock,IPPROTO_IP,
 IP_MULTICAST_LOOP, &ttl,sizeof(ttl));*/
-
+src.sin_addr.s_addr=inet_addr(peern);
 sc= sendto(sock,"test", 5, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 if(sc==-1) {//printf("unable to send to group, do group exist? sending to one device ONLY.\n");
 //printf("Please connect to (a) device(s)/let (a) device(s) connect.\n");
@@ -195,30 +196,23 @@ if(sc==-1) {//printf("unable to send to group, do group exist? sending to one de
 psfp= popen("ip neigh show | grep -o 192.* | grep -v FAILED -c","r");
  fgets(fcomp,2,psfp); c=fcomp[0]; 
 pclose(psfp);
-strcpy(fcomp,"/sdcard/.mcastrc"); strcat(fcomp,inetadr);
-if(c=='1'){ fp=fopen(fcomp,"w");
-fprintf(fp,"%s",peern); fclose(fp);}
-else if(c!='0'){fp=fopen(fcomp,"r");
-if(fp){
-fgets(peern,1+INET_ADDRSTRLEN,fp);
-strrchr(peern,'\n')[0]='\0';
-strchr(peern,' ')[0]='\0';
-if(peern[1]=='9') src.sin_addr.s_addr= inet_addr(peern);
-fclose(fp);
-}
-else if(c > '1') {
-mlen=sizeof(tmp2);
+//strcpy(fcomp,"/sdcard/.mcastrc"); strcat(fcomp,inetadr);
+//if(c=='1'){ //fp=fopen(fcomp,"w");
+//fprintf(fp,"%s",peern); fclose(fp);}
+ if(c > '1') {
+mlen=sizeof(src);
+printf("%s","Waiting for a multicasting receiver to enter fresh loop\n");
 while(1){
-while((i=recvfrom(sock, message,4, 0, (struct sockaddr *) &tmp2 , &mlen))!=0)
+while((i=recvfrom(sock, message,4, 0, (struct sockaddr *) &src, &mlen))!=0)
 if(i!=-1) break;
-//printf("srcaddr:%s\n",inet_ntoa(tmp2.sin_addr));
         if(!strncmp(message,"XOF",3)){
         j=sizeof(src);
         getpeername(sock, (struct sockaddr *)&src,&j);
-  fp=fopen(fcomp,"w"); fprintf(fp,"%s",inet_ntoa(src.sin_addr));fclose(fp);
 break;}
 }}
-}
+
+
+
  mcast=src; srcflag=1;
 
  }
@@ -446,14 +440,7 @@ if(!files2write && count==1) goto receivelabel;
 while((i=recvfrom(sock2, message, MCASTBUF_SIZ+1, 0, (struct sockaddr *) &tmp2 , &mlen))!=0)
 if(i!=-1) break;
 //printf("srcaddr:%s\n",inet_ntoa(tmp2.sin_addr));
-if(srcflag && (!strncmp(message,"XOF",3))){
-	
-	j=sizeof(src);
-        getpeername(sock2, (struct sockaddr *)&src,&j);
-strcpy(fcomp,"/sdcard/.mcastrc"); strcat(fcomp,inetadr);
- fp=fopen(fcomp,"w"); fprintf(fp,"%s", inet_ntoa(src.sin_addr));fclose(fp);
-}
-else if(message[MCASTBUF_SIZ-3]==1 ) {
+ if(message[MCASTBUF_SIZ-3]==1 ) {
 message[MCASTBUF_SIZ-3]=0;
 sendto(sock2,message,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &src, sizeof(src));
 sendto(sock2,message,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast));
