@@ -151,7 +151,7 @@ src.sin_addr.s_addr=inet_addr(peern);//htonl(INADDR_ANY);
 //if(peerf)
 //inet_addr("192.168.43.214");
 imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
-imr.imr_interface.s_addr=htonl(INADDR_ANY);
+imr.imr_interface.s_addr=inet_addr(addr);
 
 
 //const char *addr1; 
@@ -196,10 +196,15 @@ if(sc==-1) {//printf("unable to send to group, do group exist? sending to one de
 psfp= popen("ip neigh show | grep -o 192.* | grep -v FAILED -c","r");
  fgets(fcomp,2,psfp); c=fcomp[0]; 
 pclose(psfp);
-//strcpy(fcomp,"/sdcard/.mcastrc"); strcat(fcomp,inetadr);
-//if(c=='1'){ //fp=fopen(fcomp,"w");
-//fprintf(fp,"%s",peern); fclose(fp);}
  if(c > '1') {
+/*strcpy(fcomp,".mcastrc"); strcat(fcomp,inetadr);
+if(c=='1'){ fp=fopen(fcomp,"w");
+fprintf(fp,"%s",peern); fclose(fp);}
+fp=fopen(fcomp,"r"); 
+if(fp)
+fgets(message,1+INET_ADDRSTRLEN,fp);
+c=message[0];
+*/
 mlen=sizeof(src);
 printf("%s","Waiting for a multicasting receiver to enter fresh loop\n");
 while(1){
@@ -213,7 +218,7 @@ break;}
 
 
 
- mcast=src; srcflag=1;
+ mcast=src; //srcflag=1;
 
  }
 
@@ -282,8 +287,8 @@ char rem2=rem%256;
 char *buffer = (char *)malloc(sizeof(char *)*(size+MCASTBUF_SIZ-rem)); 
 int numr; 
 
-if(!srcflag)
-sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &src,sizeof(src));
+//if(!srcflag)
+//sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &src,sizeof(src));
  
 sc=sendto(sock,filename,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast,sizeof(mcast)); 
 if(sc==-1) {printf("Unable to send, do group exist %s\n", inet_ntoa(mcast.sin_addr));exit(0);}
@@ -306,8 +311,8 @@ buffer[i+MCASTBUF_SIZ-1]=filehash3;
 buffer[i+MCASTBUF_SIZ-2]=userchannel;
 buffer[i+MCASTBUF_SIZ-3]=srcflag;
 
-if(!srcflag)
-while((n=sendto(sock,buffer+i,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &src, sizeof(src)))!=0) if(n!=-1) break; 
+//if(!srcflag)
+//while((n=sendto(sock,buffer+i,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &src, sizeof(src)))!=0) if(n!=-1) break; 
  
 while((n=sendto(sock,buffer+i,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 memcpy(buffer+i+MCASTBUF_SIZ-3,dst, 3);
@@ -323,9 +328,9 @@ do {numr=fread(buffer+i,sizeof(char),size-i,fp);} while(numr!=0);
 remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='L'; remn[6]=userchannel;
 remn[7]='\0'; 
 remn[MCASTBUF_SIZ-3]= srcflag;
-if(!srcflag)
-while((sc=sendto(sock,remn,8, 0, (struct sockaddr *) &src, sizeof(src)))!=0)
-if(sc!=-1) break;
+//if(!srcflag)
+//while((sc=sendto(sock,remn,8, 0, (struct sockaddr *) &src, sizeof(src)))!=0)
+//if(sc!=-1) break;
 
 while((sc=sendto(sock,remn,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
 if(sc!=-1) break;
@@ -334,8 +339,8 @@ if(sc!=-1) break;
 buffer[i+MCASTBUF_SIZ-1]=filehash3;
 buffer[i+MCASTBUF_SIZ-2]=userchannel;
 buffer[i+MCASTBUF_SIZ-3]=srcflag;
-if(!srcflag)
-while((n=sendto(sock,buffer+i,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &src, sizeof(src)))!=0) if(n!=-1) break ; 
+//if(!srcflag)
+//while((n=sendto(sock,buffer+i,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &src, sizeof(src)))!=0) if(n!=-1) break ; 
 
 while((n=sendto(sock,buffer+i,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
 fclose(fp);
@@ -440,16 +445,7 @@ if(!files2write && count==1) goto receivelabel;
 while((i=recvfrom(sock2, message, MCASTBUF_SIZ+1, 0, (struct sockaddr *) &tmp2 , &mlen))!=0)
 if(i!=-1) break;
 //printf("srcaddr:%s\n",inet_ntoa(tmp2.sin_addr));
- if(message[MCASTBUF_SIZ-3]==1 ) {
-message[MCASTBUF_SIZ-3]=0;
-sendto(sock2,message,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &src, sizeof(src));
-sendto(sock2,message,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast));
-if(c==0){
-fprintf(stderr,"You are chosen by the admin a manager of the group  for data multicast. Make the receive wait and not close it/(not end it). You can disconnect if you don't want.\n"); 
-c=1;
-  }
-}
-else if(!strncmp(message+1,"S0F!",4)||!strncmp(message+1,"S0f!",4)){ 
+if(!strncmp(message+1,"S0F!",4)||!strncmp(message+1,"S0f!",4)){ 
 channel= ((unsigned char)message[5])%NMUTEXFILES;
 findexmn=((unsigned char)message[0])%NMUTEXFILES;
 channelport= ((channel-'0') > 0)?channel-'0': channel;
@@ -604,6 +600,17 @@ if(strstr(chead+1,"cd ~")||strstr(chead+1,"cd ..")) system(cwdir);
 else
 system(chead+1);count++; }
 }
+else if(srcflag==1 && message[MCASTBUF_SIZ-3]==1 ) {
+message[MCASTBUF_SIZ-3]=0;
+sendto(sock2,message,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &src, sizeof(src));
+sendto(sock2,message,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast));
+
+if(c==0){
+fprintf(stderr,"You are chosen by the admin a manager of the group  for data multicast. Make the receive wait and not close it/(not end it). You can disconnect if you don't want.\n"); 
+c=1;
+  }
+}
+ 
 else { 
 // if(strncmp(message,"-f",2) && k==0){ system("totem fd://0 &")|| system("vlc fd://0 &");k=1;}
  ;//fwrite(message,1,nextlen[channel][findexmn], stdout);
