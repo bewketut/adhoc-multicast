@@ -137,7 +137,6 @@ if((addr2=strchr(peern,' ')))
  pclose(psfp);
 if(peern[1]!='9'){ fprintf(stderr,"Connect first to the other devices via wifi-Director Wifi hotspot. The device's ip is:%s for this session. Restart this program if this error shows.\n",addr); strncpy(peern,addr,INET_ADDRSTRLEN);}
 //else strncpy(addr,peern,INET_ADDRSTRLEN);
-//if(strcmp(strrchr(addr,'.')+1,"1")) //if server_ x.x.x.1
 //peerf=1;
 //printf("peerf:%d peerip:%s\n",peerf,peern);
 // ip route show | grep src.*
@@ -151,6 +150,9 @@ src.sin_addr.s_addr=inet_addr(peern);//htonl(INADDR_ANY);
 //if(peerf)
 //inet_addr("192.168.43.214");
 imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
+
+imr.imr_interface.s_addr=htonl(INADDR_ANY);
+if(!strcmp(strrchr(addr,'.')+1,"1")) //if server_ x.x.x.1
 imr.imr_interface.s_addr=inet_addr(addr);
 
 
@@ -182,7 +184,7 @@ src.sin_addr.s_addr=htonl(abuf) & 0xff0000ff;
 
 if(argc>2 && strncmp(argv[1],"-m",2)){
 sendlabel:
-src.sin_addr.s_addr=htonl(INADDR_ANY);
+src.sin_addr.s_addr=inet_addr(addr);
 bind(sock, (struct sockaddr *) &src, sizeof(src));
 //src=src;
 setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));// IP_DEFAULT_MULTICAST_TTL
@@ -206,7 +208,7 @@ fgets(message,1+INET_ADDRSTRLEN,fp);
 c=message[0];
 */
 mlen=sizeof(src);
-printf("%s","Waiting for a multicasting receiver to enter fresh loop\n");
+printf("%s","Waiting for a (other) multicasting receiver to enter fresh loop\n");
 while(1){
 while((i=recvfrom(sock, message,4, 0, (struct sockaddr *) &src, &mlen))!=0)
 if(i!=-1) break;
@@ -218,7 +220,7 @@ break;}
 
 
 
- mcast=src; //srcflag=1;
+ mcast=src; srcflag=1;
 
  }
 
@@ -232,8 +234,8 @@ command= strcat(strcat(command,argv[2])," ");
 for(i=3;i<argc && strncmp(argv[i],"-m",2); i++) 
 command= strcat(strcat(command,argv[i])," "); 
 command[MCASTBUF_SIZ-3]=srcflag;
-if(!srcflag)
- sc= sendto(sock,command, 400, 0, (struct sockaddr *) &src, sizeof(mcast));
+//if(!srcflag)
+// sc= sendto(sock,command, 400, 0, (struct sockaddr *) &src, sizeof(mcast));
  
   sc= sendto(sock,command, MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(src));
 if(sc==-1) printf("Unable to send, do group exist\n");
@@ -600,7 +602,7 @@ if(strstr(chead+1,"cd ~")||strstr(chead+1,"cd ..")) system(cwdir);
 else
 system(chead+1);count++; }
 }
-else if(srcflag==1 && message[MCASTBUF_SIZ-3]==1 ) {
+else if(srcflag!=1 && message[MCASTBUF_SIZ-3]==1 ) {
 message[MCASTBUF_SIZ-3]=0;
 sendto(sock2,message,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &src, sizeof(src));
 sendto(sock2,message,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast));
