@@ -148,14 +148,14 @@ break;}
  }
 
 if(!strcmp(argv[1],"-c")){
-char *command=(char *) malloc(sizeof(char)*MCASTBUF_SIZ);
+char *command=(char *) malloc(sizeof(char)*400);
 strcpy(command,argv[1]); 
 strcpy(command+2,useraddr);
 command= strcat(strcat(command,argv[2])," "); 
 for(i=3;i<argc && strncmp(argv[i],"-m",2); i++) 
 command= strcat(strcat(command,argv[i])," "); 
  
-  sc= sendto(sock,command, 400, 0, (struct sockaddr *) &mcast, sizeof(src));
+  sc= sendto(sock,command, 401, 0, (struct sockaddr *) &mcast, sizeof(src));
 if(sc==-1) printf("Unable to send, do group exist\n");
  }
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
@@ -187,14 +187,14 @@ else{
 unsigned char fileround=argv[2][0] + argv[2][strlen(argv[2])-(strlen(argv[2])/2)] - argv[2][strlen(argv[2])-(strlen(argv[2])/3)];
 unsigned char filehash3= fileround%NMUTEXFILES;  
 unsigned char filehash= filehash3;
-char *filename= (char *) malloc(sizeof(char)*MCASTBUF_SIZ);
+char *filename= (char *) malloc(sizeof(char)*390);
 if(!strcmp(argv[1],"-F") || !strcmp(argv[1],"-f")) { filename[1]='S'; filename[2]='0'; filename[3]='F';filename[4]='!';if(!strcmp(argv[1],"-f")) filename[3]='f';}
 filename[0]=filehash; filename[5]=userchannel; filename[6]='\0';
 if(strrchr(argv[2],'/')) filename=strcat(filename,strrchr(argv[2],'/')+1);
 else
 filename=strcat(filename,argv[2]);//initialization 
-fseek(fp , 0 , SEEK_END);
 
+fseek(fp , 0 , SEEK_END);
  long size; 
 size = ftell(fp); rewind(fp); 
 long ntimes= (size/BUF_SIZ);
@@ -203,10 +203,10 @@ char rem1 =rem/256;
 char rem2=rem%256;
 char *buffer = (char *)malloc(sizeof(char *)*(size+MCASTBUF_SIZ-rem)); 
 int numr; 
-
- 
 sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast,sizeof(mcast)); 
 if(sc==-1) {printf("Unable to send, do group exist %s\n", inet_ntoa(mcast.sin_addr));exit(0);}
+
+ 
 int fdin;
 void *srs,*dst=malloc(sizeof(void *)*2);
 struct stat statbuf;
@@ -224,7 +224,7 @@ buffer[i+MCASTBUF_SIZ-1]=filehash3;
 buffer[i+MCASTBUF_SIZ-2]=userchannel;
 
  
-while((n=sendto(sock,buffer+i,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
+while((n=sendto(sock,buffer+i,MCASTBUF_SIZ+2, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 memcpy(buffer+i+MCASTBUF_SIZ-2,dst, 2);
 
 for(j=0; j<209; j++)
@@ -232,14 +232,14 @@ do {numr=fread(buffer+i,sizeof(char),size-i,fp);} while(numr!=0);
 } 
 
  if(fcompflag){strncpy(fcomp,"rm -f ",6); system(fcomp);}
- char *remn=(char *)malloc(sizeof(char)*MCASTBUF_SIZ); remn[4]= rem1; remn[5]=rem2;
+ char *remn=(char *)malloc(sizeof(char)*9); remn[4]= rem1; remn[5]=rem2;
 remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='L'; remn[6]=userchannel;
 remn[7]='\0'; 
 
-while((sc=sendto(sock,remn,8, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
+while((sc=sendto(sock,remn,9, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
 if(sc!=-1) break;
-buffer[i+MCASTBUF_SIZ-1]=filehash3;
 buffer[i+MCASTBUF_SIZ-2]=userchannel;
+buffer[i+MCASTBUF_SIZ-1]=filehash3;
 
 while((n=sendto(sock,buffer+i,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
 fclose(fp);
@@ -339,7 +339,7 @@ else sendto(sock2,"XOF",4,0,(struct sockaddr *)&src,sizeof(src));
 mlen=sizeof(tmp2);
  while(1){
 if(!files2write && count==1) goto receivelabel;
-while((i=recvfrom(sock2, message, MCASTBUF_SIZ+1, 0, (struct sockaddr *) &tmp2 , &mlen))!=0)
+while((i=recvfrom(sock2, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &tmp2 , &mlen))!=0)
 if(i!=-1) break;
 if(!strncmp(message+1,"S0F!",4)||!strncmp(message+1,"S0f!",4)){ 
 channel= ((unsigned char)message[5])%NMUTEXFILES;
@@ -428,8 +428,8 @@ message[MCASTBUF_SIZ-2]=0;
 message[MCASTBUF_SIZ-1]=0;
 if(findexmn>0){
 if(fn[channel][findexmn])
-writen(fn[channel][findexmn],message,nextlen[channel][findexmn]);
-//fwrite(message,1,nextlen[channel][findexmn],fn[channel][findexmn]);
+//writen(fn[channel][findexmn],message,nextlen[channel][findexmn]);
+fwrite(message,1,nextlen[channel][findexmn],fn[channel][findexmn]);
 else  {
 //if(k>0)
 //buff2= (char *) realloc(buff2,sizeof(char*)*k*BUF_SIZ);
