@@ -1,42 +1,10 @@
-#include <netinet/in.h>
-/*
-#define CONNECTION4TWOSV 1
-#if defined(IP_MULTICAST_TTL) && defined(IP_MULTICAST_LOOP) &&(defined (CONNECTEDCL) || defined(CONNECTION4TWOSV) || defined(CONNECTION4TWOCL))
-#undef IP_MULTICAST_TTL
-#undef IP_MULTICAST_LOOP
-group init has d/t extra interface
-//4server
-//#ifdef
-//#define IP_DEFAULT_MULTICAST_TTL 1
-//#define IP_DEFAULT_MULTICAST_LOOP 1
-//4client
-#ifdef CONNECTEDCL
-#define IP_MULTICAST_TTL 2
-#define IP_MULTICAST_LOOP 2
-#endif
-just 4two 1toMany-Manager style-poorman version
-//4server
-#ifdef CONNECTION4TWOSV
-#define IP_MULTICAST_TTL 0
-#define IP_MULTICAST_LOOP 0
-#endif
-//4client
-#ifdef CONNECTION4TWOCL
-#define IP_DEFAULT_MULTICAST_TTL 1
-#define IP_DEFAULT_MULTICAST_LOOP 0
-
-#endif
-#endif
-
-*/
 #include <stdio.h> 
-
 #include <pwd.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <stdlib.h>
 #include <sys/socket.h>
-
+#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string.h>
 #include <netdb.h>
@@ -47,10 +15,9 @@ just 4two 1toMany-Manager style-poorman version
 #include <sys/mman.h>
 #define FILE_MODE (S_IRUSR |S_IWUSR |S_IRGRP |S_IROTH)
 #define BUF_SIZ 899
-#define MCASTBUF_SIZ (BUF_SIZ+3) 
+#define MCASTBUF_SIZ (BUF_SIZ+2) 
 #define MCASTP 4010 //3100
 #define NMUTEXFILES  256
-#define MCASTP_S "3100"
 extern char *base256(int num,char *str);
 extern int tobase10(char *str);
 extern ssize_t writen(FILE *fd,const void *ptr, size_t n);
@@ -135,65 +102,23 @@ psfp= popen("ip neigh show | grep -o 192.* | grep -v FAILED | tail -1","r");
 if((addr2=strchr(peern,' ')))
  addr2[0]='\0';
  pclose(psfp);
-if(peern[1]!='9'){ fprintf(stderr,"Connect first to the other devices via wifi-Director Wifi hotspot. The device's ip is:%s for this session. Restart this program if this error shows.\n",addr); strncpy(peern,addr,INET_ADDRSTRLEN);}
-//else strncpy(addr,peern,INET_ADDRSTRLEN);
-//peerf=1;
-//printf("peerf:%d peerip:%s\n",peerf,peern);
-// ip route show | grep src.*
-//memory mapped i/o for sending
-//and writen for receiver. 
-//multicast ttl for two d/t networks
+if(peern[1]!='9'){ fprintf(stderr,"Connect first to the other devicesvia wifi-Direct or Wifi hotspot. The device's ip is:%s for this session. Restart this program if this error shows.\n",addr); strncpy(peern,addr,INET_ADDRSTRLEN);}
 tmp2.sin_family=src.sin_family=AF_INET;//
 tmp2.sin_port=src.sin_port=htons(MCASTP);
-//tmp2.sin_addr.s_addr=inet_addr(peern);//htonl(INADDR_ANY);
 src.sin_addr.s_addr=inet_addr(peern);//htonl(INADDR_ANY);
-//if(peerf)
-//inet_addr("192.168.43.214");
-imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
-
-imr.imr_interface.s_addr=htonl(INADDR_ANY);
-if(!strcmp(strrchr(addr,'.')+1,"1")) //if server_ x.x.x.1
-imr.imr_interface.s_addr=inet_addr(addr);
-
-
-//const char *addr1; 
-//char abuf[254];
-/*gethostname(abuf,50);
-struct hostent *hs= gethostent();
-
-struct addrinfo hint, *ailist,*aip;
-
-hint.ai_addr=hint.ai_next=NULL;
-getaddrinfo(hs->h_name,"nfs",&hint,&ailist);
-if(ailist->ai_family==AF_INET)
-listadr=(struct sockaddr_in *)ailist->ai_next->ai_addr;
-src.sin_addr=listadr->sin_addr;
-//memcpy((char *)abuf, hs->h_addr_list[0],hs->h_length);
-//inet_pton(AF_INET,hs->h_addr_list[0],abuf);
-//src.sin_addr.s_addr=inet_addr(abuf);
-printf("inaddr:%s abuf:%s\n",inet_ntoa(src.sin_addr),abuf);
-
-src.sin_addr.s_addr=htonl(abuf) & 0xff0000ff;
-//endhostent();*/			
-//addr=inet_ntop(AF_INET,&src.sin_addr,abuf,50);
-//src.sin_addr.s_addr=htonl(abuf);
-
  tmp2.sin_addr.s_addr=htonl(INADDR_ANY); //inet_addr(addr);//
 
-//inet_addr("192.168.43.1");// 
 
 if(argc>2 && strncmp(argv[1],"-m",2)){
 sendlabel:
 src.sin_addr.s_addr=inet_addr(addr);
 bind(sock, (struct sockaddr *) &src, sizeof(src));
-//src=src;
 setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));// IP_DEFAULT_MULTICAST_TTL
 /*setsockopt(sock,IPPROTO_IP,
 IP_MULTICAST_LOOP, &ttl,sizeof(ttl));*/
 src.sin_addr.s_addr=inet_addr(peern);
 sc= sendto(sock,"test", 5, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 if(sc==-1) {//printf("unable to send to group, do group exist? sending to one device ONLY.\n");
-//printf("Please connect to (a) device(s)/let (a) device(s) connect.\n");
 
 psfp= popen("ip neigh show | grep -o 192.* | grep -v FAILED -c","r");
  fgets(fcomp,2,psfp); c=fcomp[0]; 
@@ -218,14 +143,10 @@ if(i!=-1) break;
 break;}
 }}
 
-
-
  mcast=src; srcflag=1;
 
  }
 
-
-//IP_DEFAULT_MULTICAST_TTL
 if(!strcmp(argv[1],"-c")){
 char *command=(char *) malloc(sizeof(char)*MCASTBUF_SIZ);
 strcpy(command,argv[1]); 
@@ -233,14 +154,10 @@ strcpy(command+2,useraddr);
 command= strcat(strcat(command,argv[2])," "); 
 for(i=3;i<argc && strncmp(argv[i],"-m",2); i++) 
 command= strcat(strcat(command,argv[i])," "); 
-command[MCASTBUF_SIZ-3]=srcflag;
-//if(!srcflag)
-// sc= sendto(sock,command, 400, 0, (struct sockaddr *) &src, sizeof(mcast));
  
-  sc= sendto(sock,command, MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(src));
+  sc= sendto(sock,command, 400, 0, (struct sockaddr *) &mcast, sizeof(src));
 if(sc==-1) printf("Unable to send, do group exist\n");
  }
-//sock=socket(AF_INET, SOCK_DGRAM,0);
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
  !strcmp(argv[1],"-cf")){
 for(j=2;j<argc && strncmp(argv[j],"-m",2); j++) {argv[2]=argv[j];
@@ -263,16 +180,14 @@ if(!fp) {printf("%s\n","Unable to open file for reading (read permission). is th
 if(!strcmp(argv[1],"-cf")){
      strcpy(message,"-cf"); strcpy(message+3,useraddr);
    int strx= strlen(useraddr)+3;
-   message[MCASTBUF_SIZ-3]=srcflag;
    while(fgets(message+strx,400,fp))
-       while((n=sendto(sock,message,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
+       while((n=sendto(sock,message,500, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
 }
 else{
 unsigned char fileround=argv[2][0] + argv[2][strlen(argv[2])-(strlen(argv[2])/2)] - argv[2][strlen(argv[2])-(strlen(argv[2])/3)];
 unsigned char filehash3= fileround%NMUTEXFILES;  
 unsigned char filehash= filehash3;
 char *filename= (char *) malloc(sizeof(char)*MCASTBUF_SIZ);
-filename[MCASTBUF_SIZ-3]= srcflag;
 if(!strcmp(argv[1],"-F") || !strcmp(argv[1],"-f")) { filename[1]='S'; filename[2]='0'; filename[3]='F';filename[4]='!';if(!strcmp(argv[1],"-f")) filename[3]='f';}
 filename[0]=filehash; filename[5]=userchannel; filename[6]='\0';
 if(strrchr(argv[2],'/')) filename=strcat(filename,strrchr(argv[2],'/')+1);
@@ -289,10 +204,8 @@ char rem2=rem%256;
 char *buffer = (char *)malloc(sizeof(char *)*(size+MCASTBUF_SIZ-rem)); 
 int numr; 
 
-//if(!srcflag)
-//sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &src,sizeof(src));
  
-sc=sendto(sock,filename,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast,sizeof(mcast)); 
+sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast,sizeof(mcast)); 
 if(sc==-1) {printf("Unable to send, do group exist %s\n", inet_ntoa(mcast.sin_addr));exit(0);}
 int fdin;
 void *srs,*dst=malloc(sizeof(void *)*2);
@@ -302,26 +215,19 @@ fstat(fdin,&statbuf);
 srs=mmap(0,statbuf.st_size,PROT_READ,MAP_SHARED,fdin,0);
 memcpy(buffer,srs,statbuf.st_size);
 close(fdin);
-for(j=0; j<200; j++)
+for(j=0; j<209; j++)
 do {numr=fread(buffer,sizeof(char),size,fp);} while(numr!=0);
 
 for(i=0,k=0;k< ntimes;k++,i+=BUF_SIZ){
-	memcpy(dst,buffer+i+MCASTBUF_SIZ-3,3);
-//  c=buffer[i+MCASTBUF_SIZ-1];
-//d=buffer[i+MCASTBUF_SIZ-2];
+	memcpy(dst,buffer+i+MCASTBUF_SIZ-2,2);
 buffer[i+MCASTBUF_SIZ-1]=filehash3;
 buffer[i+MCASTBUF_SIZ-2]=userchannel;
-buffer[i+MCASTBUF_SIZ-3]=srcflag;
 
-//if(!srcflag)
-//while((n=sendto(sock,buffer+i,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &src, sizeof(src)))!=0) if(n!=-1) break; 
  
-while((n=sendto(sock,buffer+i,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
-memcpy(buffer+i+MCASTBUF_SIZ-3,dst, 3);
-//buffer[i+MCASTBUF_SIZ-1]=c;
-//buffer[i+MCASTBUF_SIZ-2]=d;
+while((n=sendto(sock,buffer+i,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
+memcpy(buffer+i+MCASTBUF_SIZ-2,dst, 2);
 
-for(j=0; j<200; j++)
+for(j=0; j<209; j++)
 do {numr=fread(buffer+i,sizeof(char),size-i,fp);} while(numr!=0);
 } 
 
@@ -329,22 +235,13 @@ do {numr=fread(buffer+i,sizeof(char),size-i,fp);} while(numr!=0);
  char *remn=(char *)malloc(sizeof(char)*MCASTBUF_SIZ); remn[4]= rem1; remn[5]=rem2;
 remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='L'; remn[6]=userchannel;
 remn[7]='\0'; 
-remn[MCASTBUF_SIZ-3]= srcflag;
-//if(!srcflag)
-//while((sc=sendto(sock,remn,8, 0, (struct sockaddr *) &src, sizeof(src)))!=0)
-//if(sc!=-1) break;
 
-while((sc=sendto(sock,remn,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
+while((sc=sendto(sock,remn,8, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
 if(sc!=-1) break;
-//memcpy(message,srs,rem);
-//if(i>0) i-=BUF_SIZ;
 buffer[i+MCASTBUF_SIZ-1]=filehash3;
 buffer[i+MCASTBUF_SIZ-2]=userchannel;
-buffer[i+MCASTBUF_SIZ-3]=srcflag;
-//if(!srcflag)
-//while((n=sendto(sock,buffer+i,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &src, sizeof(src)))!=0) if(n!=-1) break ; 
 
-while((n=sendto(sock,buffer+i,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
+while((n=sendto(sock,buffer+i,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
 fclose(fp);
 //remn[3]='f'; //EOf 
 //while((n=sendto(sock,remn,7, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
@@ -384,7 +281,13 @@ fprintf(html,"<!doctype html>\
 <meta name='viewport' content='width=device-width, initial-scale=1.0'><script>\
 function vidcload(){window.location.reload(true);}</script></head>");
 fclose(html);} char id[2]; id[0]='0'; id[1]='\0';
-//char mcastp_s[5];//strcpy(mcastp_s,MCASTP_S);
+imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
+
+imr.imr_interface.s_addr=htonl(INADDR_ANY);
+if(!strcmp(strrchr(addr,'.')+1,"1")) //if server_ x.x.x.1
+imr.imr_interface.s_addr=inet_addr(addr);
+
+
 char localport[8];
 int channelport;
 char vid[540]; getcwd(cwdir+4,40);
@@ -419,34 +322,25 @@ if(y=='Q'|| y=='T') return 0;
 }
 if(recvonly>'0' && recvonly!=2)
 recvonly--; 
-//if((so2=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
-//if(count== 1) 
-//concat(concat("vlc",inetadr),":40121"))
 if(count==1) count--;
 if(!(cnt%25)){
-	if(!srcflag){
                if(!cnt){
 		if((sock2=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
                   
 		bind(sock2, (struct sockaddr *) &tmp2, sizeof(tmp2));		
 //printf("defaultttl፡=%d",IP_DEFAULT_MULTICAST_LOOP);
-//inet_addr("192.168.43.1");// 
                             }
 i=setsockopt(sock2, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &imr, sizeof(struct ip_mreq));
 if(i < 0) {printf("Cannot join Multicast Group. Waiting in unicast. is this %sself is connection server host device-switch %s.(?)\n",useraddr,addr);
-//	src.sin_addr.s_addr=inet_addr("192.168.43.1");//htonl(INADDR_ANY);
-//		bind(sock2, (struct sockaddr *) &src, sizeof(src));
-	//	sock2=sock;
 	           srcflag=1;
 }
-else sendto(sock2,"XOF",5,0,(struct sockaddr *)&src, sizeof(src)); 
-}}  cnt++;
+else sendto(sock2,"XOF",4,0,(struct sockaddr *)&src,sizeof(src));
+}  cnt++;
 mlen=sizeof(tmp2);
  while(1){
 if(!files2write && count==1) goto receivelabel;
 while((i=recvfrom(sock2, message, MCASTBUF_SIZ+1, 0, (struct sockaddr *) &tmp2 , &mlen))!=0)
 if(i!=-1) break;
-//printf("srcaddr:%s\n",inet_ntoa(tmp2.sin_addr));
 if(!strncmp(message+1,"S0F!",4)||!strncmp(message+1,"S0f!",4)){ 
 channel= ((unsigned char)message[5])%NMUTEXFILES;
 findexmn=((unsigned char)message[0])%NMUTEXFILES;
@@ -464,8 +358,6 @@ so[channel][findexmn]=1;
 if(!temp[channel].sin_addr.s_addr){
 temp[channel].sin_family=AF_INET;
 temp[channel].sin_addr.s_addr=inet_addr("127.0.0.1");
-//temp[channel][findexmn].sin_port=htons(30100);
-//else
 temp[channel].sin_port=htons(MCASTP+channelport);}
 }
 else if (!(fn[channel][findexmn]=fopen(channelfolder,"w"))){
@@ -486,7 +378,6 @@ strrchr(channelfolder,'/')[1]='\0';
 strcat(channelfolder,message+6);
 } 
 }
-//printf("message+5: %s",message+5);
 } 
 if(fn[channel][findexmn])
 fprintf(stderr,"opening file %s for writing %d\n",channelfolder,findexmn);
@@ -548,15 +439,8 @@ else  {
 //printf("%s val:%d\n",buff2+k*BUF_SIZ,k);
 //sendto(sock2,buff2,k*BUF_SIZ, 0, (struct sockaddr *) &temp[channel], sizeof(temp[channel]));
 while((n=sendto(sock2,message/*buff2+k*BUF_SIZ*/,BUF_SIZ, 0, (struct sockaddr *) &temp[channel], sizeof(temp[channel])))!=0) if(n!=-1) break;
-sleep(4000);
-//k++;
+sleep(400);
 }
-
-
-//while((n=sendto(sock,buffer+i,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
-     //  write(so,message,nextlen[channel][findexmn]); 
-//else //write(so2,message,nextlen[channel][findexmn]); 
-//sendto(so2,message,BUF_SIZ, 0, (struct sockaddr *) &temp2, sizeof(temp2));
 if(nextlen[channel][findexmn]!=BUF_SIZ){
 if(fn[channel][findexmn]){
 	fclose(fn[channel][findexmn]);
@@ -571,7 +455,6 @@ fprintf(stderr,"file can't be opened- ro folder/or is not being streamed\n");
 files2write--;
 if(message[0]=='E')printf("%s\n",message+4);
 count++;
-//fprintf(stdout,"EOF");
 nextlen[channel][findexmn]=BUF_SIZ;}
 }
 else if(!strncmp(message,"-c",2)){
@@ -602,24 +485,21 @@ if(strstr(chead+1,"cd ~")||strstr(chead+1,"cd ..")) system(cwdir);
 else
 system(chead+1);count++; }
 }
+/*
 else if(srcflag!=1 && message[MCASTBUF_SIZ-3]==1 ) {
 message[MCASTBUF_SIZ-3]=0;
 sendto(sock2,message,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &src, sizeof(src));
 sendto(sock2,message,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast));
-
 if(c==0){
 fprintf(stderr,"You are chosen by the admin a manager of the group  for data multicast. Make the receive wait and not close it/(not end it). You can disconnect if you don't want.\n"); 
 c=1;
   }
 }
- 
+*/ 
 else { 
-// if(strncmp(message,"-f",2) && k==0){ system("totem fd://0 &")|| system("vlc fd://0 &");k=1;}
- ;//fwrite(message,1,nextlen[channel][findexmn], stdout);
+;
 }
 }
-//fclose(fn[channel][findexmn]); fn[channel][findexmn]=NULL;
-//if(getchar()==EOF) 
 //return setsockopt(so,IPPRTO_IP, IP_DROP_MEMBERSHIP, &imr, sizeof(struct ip_mreq));
 
 }

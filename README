@@ -51,7 +51,8 @@ For android...1.download a terminal emulator from the app store
 4.run the program anywhere as: ~/mcastcmds (or ~/mcastshare or ~/mh if you changed the name) 
 4. put an alias at the starup shell if you like(alias mh= '~/mh'; then  (e.g. ~/mcastcmds --help).
 The mh -f file_name.mp4  has good signs that it will play on network. tried it using mxplayer (opening url rtp://127.0.0.1:40xx the ~/mh receiver has to be on.). complained it has no the codecs. Choose your own player that can play rtp (for mp4s) but ...tested it on androids. 
-It is now fully multicast for the 'wif-direct'  host and client.    
+It is ****now fully multicast*****hippy hooray**** for the 'wif-direct'  host and client (if the socket and imr on the hotspot host... binds 192.168.x.1 directly- it will
+not allow binding for a hotspot host by default...bind it by force..i.e. directly use the hotspot server ip.). 
 This allows to run commands on remote multicast joined host and importantly multicast file transfers. Who knows maybe this
 could be used for android devices..imagine a lecturer using this app sending all "multicast joined" students lecture notes
 without "copy from this one student or from the one who has it". I have no new computer and android building tools are
