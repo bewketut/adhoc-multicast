@@ -428,8 +428,7 @@ message[MCASTBUF_SIZ-2]=0;
 message[MCASTBUF_SIZ-1]=0;
 if(findexmn>0){
 if(fn[channel][findexmn])
-//writen(fn[channel][findexmn],message,nextlen[channel][findexmn]);
-fwrite(message,1,nextlen[channel][findexmn],fn[channel][findexmn]);
+writen(fn[channel][findexmn],message,nextlen[channel][findexmn]);
 else  {
 //if(k>0)
 //buff2= (char *) realloc(buff2,sizeof(char*)*k*BUF_SIZ);
