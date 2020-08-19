@@ -31,7 +31,7 @@ int main(int argc, char **argv){
 struct sockaddr_in src,temp[NMUTEXFILES],mcast,tmp2, *listadr;
 struct in_addr mcastaddr;
 int so[NMUTEXFILES][NMUTEXFILES],sc,i,sock,sock2,n;
-unsigned int ttl,  k; socklen_t j, mlen;  
+unsigned int ttl=1, k; socklen_t j, mlen;  
 char message[MCASTBUF_SIZ];
 unsigned char c=0, d;
 FILE *fp;
@@ -42,7 +42,6 @@ struct ip_mreq imr;
 
 char *inetadr= (char *) malloc(sizeof(char *)*INET_ADDRSTRLEN);
 strcpy(inetadr,"227.226.225.");
-
 int sendflag=0;
 
 for(i=1; i<argc; i++) {
@@ -105,17 +104,24 @@ if((addr2=strchr(peern,' ')))
 if(peern[1]!='9'){ fprintf(stderr,"Connect first to the other devicesvia wifi-Direct or Wifi hotspot. The device's ip is:%s for this session. Restart this program if this error shows.\n",addr); strncpy(peern,addr,INET_ADDRSTRLEN);}
 tmp2.sin_family=src.sin_family=AF_INET;//
 tmp2.sin_port=src.sin_port=htons(MCASTP);
-src.sin_addr.s_addr=inet_addr(peern);//htonl(INADDR_ANY);
- tmp2.sin_addr.s_addr=htonl(INADDR_ANY); //inet_addr(addr);//
+imr.imr_interface.s_addr=htonl(INADDR_ANY);
+if(!strcmp(strrchr(addr,'.')+1,"1")){ //if _server x.x.x.1
+imr.imr_interface.s_addr=inet_addr(addr);
+srcflag=1;
+}
+
 
 
 if(argc>2 && strncmp(argv[1],"-m",2)){
 sendlabel:
-src.sin_addr.s_addr=inet_addr(addr);
+src.sin_addr.s_addr=htonl(INADDR_ANY);//inet_addr("224.0.0.1");// mcastaddr.s_addr;
+
 bind(sock, (struct sockaddr *) &src, sizeof(src));
 setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));// IP_DEFAULT_MULTICAST_TTL
 /*setsockopt(sock,IPPROTO_IP,
 IP_MULTICAST_LOOP, &ttl,sizeof(ttl));*/
+if(srcflag)
+tmp2.sin_addr.s_addr=inet_addr(addr);
 src.sin_addr.s_addr=inet_addr(peern);
 sc= sendto(sock,"test", 5, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 if(sc==-1) {//printf("unable to send to group, do group exist? sending to one device ONLY.\n");
@@ -154,6 +160,8 @@ strcpy(command+2,useraddr);
 command= strcat(strcat(command,argv[2])," "); 
 for(i=3;i<argc && strncmp(argv[i],"-m",2); i++) 
 command= strcat(strcat(command,argv[i])," "); 
+if(srcflag)
+  sc= sendto(sock,command, 401, 0, (struct sockaddr *) &tmp2, sizeof(src));
  
   sc= sendto(sock,command, 401, 0, (struct sockaddr *) &mcast, sizeof(src));
 if(sc==-1) printf("Unable to send, do group exist\n");
@@ -203,6 +211,8 @@ char rem1 =rem/256;
 char rem2=rem%256;
 char *buffer = (char *)malloc(sizeof(char *)*(size+MCASTBUF_SIZ-rem)); 
 int numr; 
+if(srcflag)
+sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &tmp2,sizeof(tmp2)); 
 sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast,sizeof(mcast)); 
 if(sc==-1) {printf("Unable to send, do group exist %s\n", inet_ntoa(mcast.sin_addr));exit(0);}
 
@@ -223,8 +233,11 @@ for(i=0,k=0;k< ntimes;k++,i+=BUF_SIZ){
 buffer[i+MCASTBUF_SIZ-1]=filehash3;
 buffer[i+MCASTBUF_SIZ-2]=userchannel;
 
+while((n=sendto(sock,buffer+i,BUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
+if(srcflag)
+while((n=sendto(sock,buffer+i,MCASTBUF_SIZ, 0, (struct sockaddr *) &tmp2, sizeof(tmp2)))!=0) if(n!=-1) break; 
  
-while((n=sendto(sock,buffer+i,MCASTBUF_SIZ+2, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
+while((n=sendto(sock,buffer+i,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 memcpy(buffer+i+MCASTBUF_SIZ-2,dst, 2);
 
 for(j=0; j<209; j++)
@@ -235,11 +248,17 @@ do {numr=fread(buffer+i,sizeof(char),size-i,fp);} while(numr!=0);
  char *remn=(char *)malloc(sizeof(char)*9); remn[4]= rem1; remn[5]=rem2;
 remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='L'; remn[6]=userchannel;
 remn[7]='\0'; 
+if(srcflag)
+while((sc=sendto(sock,remn,9, 0, (struct sockaddr *) &tmp2, sizeof(tmp2)))!=0)
+if(sc!=-1) break;
 
 while((sc=sendto(sock,remn,9, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
 if(sc!=-1) break;
 buffer[i+MCASTBUF_SIZ-2]=userchannel;
 buffer[i+MCASTBUF_SIZ-1]=filehash3;
+while((n=sendto(sock,buffer+i,BUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
+if(srcflag)
+while((n=sendto(sock,buffer+i,MCASTBUF_SIZ, 0, (struct sockaddr *) &tmp2, sizeof(tmp2)))!=0) if(n!=-1) break ; 
 
 while((n=sendto(sock,buffer+i,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
 fclose(fp);
@@ -283,10 +302,6 @@ function vidcload(){window.location.reload(true);}</script></head>");
 fclose(html);} char id[2]; id[0]='0'; id[1]='\0';
 imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
 
-imr.imr_interface.s_addr=htonl(INADDR_ANY);
-if(!strcmp(strrchr(addr,'.')+1,"1")) //if server_ x.x.x.1
-imr.imr_interface.s_addr=inet_addr(addr);
-
 
 char localport[8];
 int channelport;
@@ -322,6 +337,7 @@ if(y=='Q'|| y=='T') return 0;
 }
 if(recvonly>'0' && recvonly!=2)
 recvonly--; 
+ tmp2.sin_addr.s_addr=htonl(INADDR_ANY); //inet_addr(addr);//
 if(count==1) count--;
 if(!(cnt%25)){
                if(!cnt){
