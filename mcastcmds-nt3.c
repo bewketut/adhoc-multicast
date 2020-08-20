@@ -96,7 +96,7 @@ strchr(addr,'\n')[0]='\0';
 strchr(addr,' ')[0]='\0';
 
 //char peerf=0; 
-psfp= popen("ip neigh show | grep -o 192.* | grep -v FAILED | tail -1","r");
+psfp= popen("ip neigh show | grep -o 192.* | grep -v FAILED | head -1","r");
  fgets(peern,INET_ADDRSTRLEN,psfp);
 if((addr2=strchr(peern,' ')))
  addr2[0]='\0';
@@ -278,6 +278,7 @@ fprintf(stderr,"%s%s%s%s%s\n","Prepared to receive commands and file transfers!\
 FILE  *fn[NMUTEXFILES][NMUTEXFILES]; 
 unsigned char findexmn=0,channel=0, prev;//fflag,k=0,*cm;
  char *chead, *filen,y='x',x,*cwdir= (char *) malloc(sizeof(char)*400);/*,*buff2=(char *)malloc(sizeof(char *)*6*BUF_SIZ)*/
+char **filen1 = (char **)malloc(sizeof(char **)*500);
 char *file_ats, *warning=(char *)malloc(sizeof(char)*85); strcpy(warning,"EEOf");
 char channelfolder[130]; strcpy(channelfolder,"channel"); c=0;
 int nextlen[NMUTEXFILES][NMUTEXFILES],recvonly='0',count=0, cnt=0, files2write=0; for(i=0;i<NMUTEXFILES;i++){
@@ -306,7 +307,9 @@ imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
 char localport[8];
 int channelport;
 char vid[540]; getcwd(cwdir+4,40);
-
+psfp=popen("cd ~/ && pwd","r");
+fgets(cwdir+4,40,psfp);
+pclose(psfp);
 receivelabel:
 
 if(recvonly!=2 && recvonly =='0'){
@@ -319,16 +322,35 @@ if(y=='R')recvonly=2;
  if (y=='S' || y=='X' || y=='V'){
  system("ls");
 if(y=='X'|| y=='V')
-printf("Please write a filename:");
+printf("Write a filename/s(regex accepted):");
 else if(y=='S') printf("$:~");
  fgets(filen,30,stdin);
 strrchr(filen,'\n')[0]='\0'; 
-if(y=='X')
-argv[1]="-F";
-else if(y=='V') argv[1]="-f";
-else if(y=='S')
- argv[1]="-c"; 
+if(y=='X'|| y=='V') {
+if(y=='V') argv[1]="-f";
+else argv[1]="-F"; strcpy(fcomp,"ls "); i=0;
+psfp=popen(strcat(fcomp,filen),"r");
+filen1[i]=(char *)malloc(sizeof(char *)*130);
+while(fscanf(psfp,"%s",filen1[i])!=EOF){
+argv[i+2]=filen1[i];
+i++;
+filen1[i]=(char *)malloc(sizeof(char *)*130);
+}
+pclose(psfp);
+argc=i+3;
+}
+else if(y=='S'){
+ argv[1]="-c"; system(filen);  if(strstr(filen,"cd ") ){ 
+if(strstr(filen,"cd ~")){ chdir(cwdir+4);if(strstr(filen,"cd ~/")) strcpy(fcomp,strstr(filen,"cd ~/")+5);  if(strchr(fcomp,' '))
+strchr(fcomp,' ')[0]='\0'; if(fcomp) chdir(fcomp);
+ }//fchdir(fd); }
+else{
+strcpy(fcomp,strstr(filen,"cd ")+3);  if(strchr(fcomp,' '))
+strchr(fcomp,' ')[0]='\0'; chdir(fcomp);}
+}  
 argv[2]=filen; argc=3;
+ }
+
 sendflag=1;
 goto sendlabel;
 }}else y='l';
@@ -481,7 +503,8 @@ else printf("%s:-%s\n", message+2,chead+1);
 if(strchr(chead+1,'/')&& !strstr(chead+1,"//")){
 sendto(sock,strcat(strcat(warning,"Warning error: Access is limited to the program folder ('//' forbidden)_no_command_executed!!~from~"),useraddr),125, 0, (struct sockaddr *) &mcast, sizeof(mcast)); count++;}
 else {
-if(strstr(chead+1,"cd ~")||strstr(chead+1,"cd ..")) system(cwdir);
+if(strstr(chead+1,"cd ~")) {system(chead+1); chdir(cwdir+4);}
+else if(strstr(chead+1,"cd ")) {system(chead+1); chdir(strstr(chead+1,"cd ")+3);}
 else
 system(chead+1);}count++;
 }}
@@ -496,7 +519,8 @@ if(strchr(chead+1,'/')&& !strstr(chead+1,"//")){
 sendto(sock,strcat(strcat(warning,"Warning error: Access is limited to the program folder ('//' forbidden)_no_command_executed!!~from~"),strcat(useraddr,cwdir+4)),150, 0, (struct sockaddr *) &mcast, sizeof(mcast));//y='w'; count++;
 }
 else {
-if(strstr(chead+1,"cd ~")||strstr(chead+1,"cd ..")) system(cwdir);
+if(strstr(chead+1,"cd ~")) {system(chead+1); chdir(cwdir+4);}
+else if(strstr(chead+1,"cd ")) {system(chead+1); chdir(strstr(chead+1,"cd ")+3);}
 else
 system(chead+1);count++; }
 }
@@ -582,3 +606,4 @@ char *myargs(int argc, char **argv){
          else return optarg;
 }
 */
+
