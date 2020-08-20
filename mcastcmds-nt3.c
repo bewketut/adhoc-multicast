@@ -243,20 +243,20 @@ memcpy(buffer+i+MCASTBUF_SIZ-2,dst, 2);
 for(j=0; j<209; j++)
 do {numr=fread(buffer+i,sizeof(char),size-i,fp);} while(numr!=0);
 } 
+while((n=sendto(sock,buffer+i,BUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
 
  if(fcompflag){strncpy(fcomp,"rm -f ",6); system(fcomp);}
  char *remn=(char *)malloc(sizeof(char)*9); remn[4]= rem1; remn[5]=rem2;
 remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='L'; remn[6]=userchannel;
 remn[7]='\0'; 
 if(srcflag)
-while((sc=sendto(sock,remn,9, 0, (struct sockaddr *) &tmp2, sizeof(tmp2)))!=0)
+while((sc=sendto(sock,remn,8, 0, (struct sockaddr *) &tmp2, sizeof(tmp2)))!=0)
 if(sc!=-1) break;
 
-while((sc=sendto(sock,remn,9, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
+while((sc=sendto(sock,remn,8, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
 if(sc!=-1) break;
 buffer[i+MCASTBUF_SIZ-2]=userchannel;
 buffer[i+MCASTBUF_SIZ-1]=filehash3;
-while((n=sendto(sock,buffer+i,BUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
 if(srcflag)
 while((n=sendto(sock,buffer+i,MCASTBUF_SIZ, 0, (struct sockaddr *) &tmp2, sizeof(tmp2)))!=0) if(n!=-1) break ; 
 
