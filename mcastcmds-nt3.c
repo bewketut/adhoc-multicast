@@ -154,16 +154,16 @@ break;}
  }
 
 if(!strcmp(argv[1],"-c")){
-char *command=(char *) malloc(sizeof(char)*400);
+char *command=(char *) malloc(sizeof(char)*MCASTBUF_SIZ);
 strcpy(command,argv[1]); 
 strcpy(command+2,useraddr);
 command= strcat(strcat(command,argv[2])," "); 
 for(i=3;i<argc && strncmp(argv[i],"-m",2); i++) 
 command= strcat(strcat(command,argv[i])," "); 
-if(srcflag)
-  sc= sendto(sock,command, 401, 0, (struct sockaddr *) &tmp2, sizeof(src));
+//if(srcflag)
+//  sc= sendto(sock,command, 401, 0, (struct sockaddr *) &tmp2, sizeof(src));
  
-  sc= sendto(sock,command, 401, 0, (struct sockaddr *) &mcast, sizeof(src));
+  sc= sendto(sock,command, MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(src));
 if(sc==-1) printf("Unable to send, do group exist\n");
  }
 if(!strcmp(argv[1],"-F")|| !strcmp(argv[1],"-f") || 
@@ -189,13 +189,13 @@ if(!strcmp(argv[1],"-cf")){
      strcpy(message,"-cf"); strcpy(message+3,useraddr);
    int strx= strlen(useraddr)+3;
    while(fgets(message+strx,400,fp))
-       while((n=sendto(sock,message,500, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
+       while((n=sendto(sock,message,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1)break;  
 }
 else{
 unsigned char fileround=argv[2][0] + argv[2][strlen(argv[2])-(strlen(argv[2])/2)] - argv[2][strlen(argv[2])-(strlen(argv[2])/3)];
 unsigned char filehash3= fileround%NMUTEXFILES;  
 unsigned char filehash= filehash3;
-char *filename= (char *) malloc(sizeof(char)*390);
+char *filename= (char *) malloc(sizeof(char)*(MCASTBUF_SIZ-1));
 if(!strcmp(argv[1],"-F") || !strcmp(argv[1],"-f")) { filename[1]='S'; filename[2]='0'; filename[3]='F';filename[4]='!';if(!strcmp(argv[1],"-f")) filename[3]='f';}
 filename[0]=filehash; filename[5]=userchannel; filename[6]='\0';
 if(strrchr(argv[2],'/')) filename=strcat(filename,strrchr(argv[2],'/')+1);
@@ -211,9 +211,9 @@ char rem1 =rem/256;
 char rem2=rem%256;
 char *buffer = (char *)malloc(sizeof(char *)*(size+MCASTBUF_SIZ-rem)); 
 int numr; 
-if(srcflag)
-sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &tmp2,sizeof(tmp2)); 
-sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &mcast,sizeof(mcast)); 
+//if(srcflag)
+//sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &tmp2,sizeof(tmp2)); 
+sc=sendto(sock,filename,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast,sizeof(mcast)); 
 if(sc==-1) {printf("Unable to send, do group exist %s\n", inet_ntoa(mcast.sin_addr));exit(0);}
 
  
@@ -232,36 +232,34 @@ for(i=0,k=0;k< ntimes;k++,i+=BUF_SIZ){
 	memcpy(dst,buffer+i+MCASTBUF_SIZ-2,2);
 buffer[i+MCASTBUF_SIZ-1]=filehash3;
 buffer[i+MCASTBUF_SIZ-2]=userchannel;
-
-while((n=sendto(sock,buffer+i,BUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
-if(srcflag)
-while((n=sendto(sock,buffer+i,MCASTBUF_SIZ, 0, (struct sockaddr *) &tmp2, sizeof(tmp2)))!=0) if(n!=-1) break; 
- 
-while((n=sendto(sock,buffer+i,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
+//if(srcflag)
+//while((n=sendto(sock,buffer+i,MCASTBUF_SIZ, 0, (struct sockaddr *) &tmp2, sizeof(tmp2)))!=0) if(n!=-1) break; 
+n=0; j=0;
+while((n=sendto(sock,buffer+i+n,MCASTBUF_SIZ-j, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0){if(n==-1) continue; j+=n; if(j==MCASTBUF_SIZ) break; }
 memcpy(buffer+i+MCASTBUF_SIZ-2,dst, 2);
 
 for(j=0; j<209; j++)
 do {numr=fread(buffer+i,sizeof(char),size-i,fp);} while(numr!=0);
 } 
-while((n=sendto(sock,buffer+i,BUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
 
+fclose(fp);
  if(fcompflag){strncpy(fcomp,"rm -f ",6); system(fcomp);}
- char *remn=(char *)malloc(sizeof(char)*9); remn[4]= rem1; remn[5]=rem2;
+ char *remn=(char *)malloc(sizeof(char)*MCASTBUF_SIZ); remn[4]= rem1; remn[5]=rem2;
 remn[0]=filehash3; remn[1]='E'; remn[2]='O'; remn[3]='L'; remn[6]=userchannel;
 remn[7]='\0'; 
-if(srcflag)
-while((sc=sendto(sock,remn,8, 0, (struct sockaddr *) &tmp2, sizeof(tmp2)))!=0)
-if(sc!=-1) break;
+//if(srcflag)
+//while((sc=sendto(sock,remn,8, 0, (struct sockaddr *) &tmp2, sizeof(tmp2)))!=0)
+//if(sc!=-1) break;
 
-while((sc=sendto(sock,remn,8, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
+while((sc=sendto(sock,remn,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0)
 if(sc!=-1) break;
 buffer[i+MCASTBUF_SIZ-2]=userchannel;
 buffer[i+MCASTBUF_SIZ-1]=filehash3;
-if(srcflag)
-while((n=sendto(sock,buffer+i,MCASTBUF_SIZ, 0, (struct sockaddr *) &tmp2, sizeof(tmp2)))!=0) if(n!=-1) break ; 
+//if(srcflag)
+//while((n=sendto(sock,buffer+i,MCASTBUF_SIZ, 0, (struct sockaddr *) &tmp2, sizeof(tmp2)))!=0) if(n!=-1) break ; 
 
-while((n=sendto(sock,buffer+i,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break ; 
-fclose(fp);
+n=0; j=0;
+while((n=sendto(sock,buffer+i+n,MCASTBUF_SIZ-j, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0){ if(n==-1) continue; j+=n;  if(j==MCASTBUF_SIZ) break; }
 //remn[3]='f'; //EOf 
 //while((n=sendto(sock,remn,7, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0) if(n!=-1) break; 
 //if(sc==-1) printf("Unable to send, do group exist\n");
@@ -377,8 +375,8 @@ else sendto(sock2,"XOF",4,0,(struct sockaddr *)&src,sizeof(src));
 mlen=sizeof(tmp2);
  while(1){
 if(!files2write && count==1) goto receivelabel;
-while((i=recvfrom(sock2, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &tmp2 , &mlen))!=0)
-if(i!=-1) break;
+while((i=recvfrom(sock2, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &tmp2 , &mlen))!= 0) if(n!=-1) break;
+ if(i==-1) continue; 
 if(!strncmp(message+1,"S0F!",4)||!strncmp(message+1,"S0f!",4)){ 
 channel= ((unsigned char)message[5])%NMUTEXFILES;
 findexmn=((unsigned char)message[0])%NMUTEXFILES;
@@ -454,6 +452,7 @@ else if(!strncmp(message+1,"EOL",3)){
 findexmn=((unsigned char)message[0])%NMUTEXFILES;
 channel=((unsigned char)message[6])%NMUTEXFILES;
  nextlen[channel][findexmn]=((unsigned char)message[4])*256 + ((unsigned char)message[5]) ;
+findexmn=0; channel=0;
 }
 else if(files2write){
 prev=findexmn;
@@ -465,8 +464,9 @@ strcat(channelfolder,"/");
 message[MCASTBUF_SIZ-2]=0;
 message[MCASTBUF_SIZ-1]=0;
 if(findexmn>0){
-if(fn[channel][findexmn])
+if(fn[channel][findexmn]) {
 writen(fn[channel][findexmn],message,nextlen[channel][findexmn]);
+}
 else  {
 //if(k>0)
 //buff2= (char *) realloc(buff2,sizeof(char*)*k*BUF_SIZ);
