@@ -390,10 +390,12 @@ if(!strncmp(message,"XOFMCAST",8))
  sendto(sock2,"XOFREADY",9,0,(struct sockaddr *)&src,sizeof(src));
 else if(message[MCASTBUF_SIZ-3]) {
 j+=i;
-if(j>=MCASTBUF_SIZ) {j=0; message[MCASTBUF_SIZ-3]=0;}
-sendto(sock2,message,i, 0, (struct sockaddr *) &mcast, sizeof(src));
-//n=0; j=0;
-//while((n=sendto(sock2,message+n,MCASTBUF_SIZ-j, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0){if(n==-1) continue; j+=n; if(j==MCASTBUF_SIZ) break; }
+if(j>=MCASTBUF_SIZ-1) {j=0; message[MCASTBUF_SIZ-3]=0;}
+n=sendto(sock2,message,i, 0, (struct sockaddr *) &mcast, sizeof(mcast));
+if(n<i)
+sendto(sock2,message+n,i-n, 0, (struct sockaddr *) &mcast, sizeof(mcast));
+//n=0; k=0;
+//while((n=sendto(sock2,message+k,i-k, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0){if(n==-1) continue; k+=n; if(k==i) break; }
 //sendto(sock2,message,MCASTBUF_SIZ+1, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 }
 else if(!strncmp(message+1,"S0F!",4)||!strncmp(message+1,"S0f!",4)){ 
