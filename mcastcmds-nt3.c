@@ -114,15 +114,15 @@ srcflag=1;
 
 if(argc>2 && strncmp(argv[1],"-m",2)){
 sendlabel:
-src.sin_addr.s_addr=htonl(INADDR_ANY);//inet_addr("224.0.0.1");// mcastaddr.s_addr;
+//src.sin_addr.s_addr=htonl(INADDR_ANY);//inet_addr("224.0.0.1");// mcastaddr.s_addr;
+src.sin_addr.s_addr=inet_addr(addr);
 
 bind(sock, (struct sockaddr *) &src, sizeof(src));
 setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));// IP_DEFAULT_MULTICAST_TTL
 /*setsockopt(sock,IPPROTO_IP,
 IP_MULTICAST_LOOP, &ttl,sizeof(ttl));*/
-if(srcflag)
-tmp2.sin_addr.s_addr=inet_addr(addr);
-src.sin_addr.s_addr=inet_addr(peern);
+//if(srcflag)
+//tmp2.sin_addr.s_addr=inet_addr(addr);
 sc= sendto(sock,"test", 5, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 if(sc==-1) {//printf("unable to send to group, do group exist? sending to one device ONLY.\n");
 
@@ -357,7 +357,7 @@ if(y=='Q'|| y=='T') return 0;
 }
 if(recvonly>'0' && recvonly!=2)
 recvonly--; 
- tmp2.sin_addr.s_addr=htonl(INADDR_ANY); //inet_addr(addr);//
+ tmp2.sin_addr.s_addr=htonl(INADDR_ANY); //inet_addr(peern);//
 if(count==1) count--;
 if(!(cnt%25)){
                if(!cnt){
