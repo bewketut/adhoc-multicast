@@ -35,7 +35,7 @@ struct srcmutexfiles {
 int main(int argc, char **argv){
 struct sockaddr_in src,temp[NMUTEXFILES],mcast,tmp2, *listadr;
 struct in_addr mcastaddr;
-int so[NMUTEXFILES][NMUTEXFILES],sc,i,sock,sock2,sock3,n;
+int so[NMUTEXFILES][NMUTEXFILES],sc,i,sock,sock2,n;//,sock3
 unsigned int ttl=1, k; socklen_t j, mlen;  
 char message[MCASTBUF_SIZ];
 unsigned char c=0, d;
@@ -156,7 +156,7 @@ if(i!=-1) break;
         getpeername(sock, (struct sockaddr *)&src,&mlen);
 printf("%s\n","Great!! multicasting receiver that sends is found.");
 setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));// IP_DEFAULT_MULTICAST_TTL
-mcast=src; srcflag=1;
+mcast=src; srcflag=1; //needed b/c router can't write data fast to mcast...at the receiver pipe to mcast.
 break;
 }
 }
@@ -216,10 +216,9 @@ if(strrchr(argv[2],'/')) filename=strcat(filename,strrchr(argv[2],'/')+1);
 else
 filename=strcat(filename,argv[2]);//initialization 
 
- long size; 
 struct stat statbuf;
 fstat(fdin,&statbuf);
-size = statbuf.st_size; 
+ long size=statbuf.st_size; 
 long ntimes= (statbuf.st_size/BUF_SIZ);
 int rem = size%BUF_SIZ;
 char rem1 =rem/256; 
@@ -240,9 +239,6 @@ srs=mmap(0,size,PROT_READ,MAP_SHARED,fdin,0);
 
 memcpy(buffer,srs,size);
 
-if(size<BUF_SIZ)
-readn(fdin,buffer,size);
-long p=0;
 for(i=0,k=0;k< ntimes;k++,i+=BUF_SIZ){
 /*
 n=0;
@@ -261,7 +257,7 @@ while((n=sendto(sock,buffer+i+n,MCASTBUF_SIZ-j, 0, (struct sockaddr *) &mcast, s
 memcpy(buffer+i+MCASTBUF_SIZ-3,dst, 3);
 } 
 
-close(fdin);
+readn(fdin,buffer+i,rem);
  if(fcompflag){strncpy(fcomp,"rm -f ",6); system(fcomp);}
  char *remn=(char *)malloc(sizeof(char *)*MCASTBUF_SIZ); remn[4]= rem1; remn[5]=rem2;
 remn[MCASTBUF_SIZ-1]=filehash;
@@ -284,6 +280,7 @@ buffer[i+MCASTBUF_SIZ-1]=filehash3;
 n=0; j=0;
 while((n=sendto(sock,buffer+i+n,MCASTBUF_SIZ-j, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0){ if(n==-1) continue; j+=n;  if(j==MCASTBUF_SIZ) break; }
 
+close(fdin);
 }
  }
 }
@@ -294,7 +291,7 @@ char *argstr= argv[0];
 if(strrchr(argv[0],'/'))argstr=strrchr(argv[0],'/')+1;
 if(strrchr(argv[0],'.'))argstr=strrchr(argv[0],'/');
 fprintf(stderr,"%s%s%s%s%s\n","Prepared to receive commands and file transfers!\n Now do ",argstr," -F filename or ",argstr," -c commandname\n on another terminal or computer on the network.\n waiting...");
-int  fn[NMUTEXFILES][NMUTEXFILES]; 
+FILE *fn[NMUTEXFILES][NMUTEXFILES]; 
 unsigned char findexmn=0,channel=0, prev;//fflag,k=0,*cm;
  char *chead, *filen,y='x',x,*cwdir= (char *) malloc(sizeof(char)*400);/*,*buff2=(char *)malloc(sizeof(char *)*6*BUF_SIZ)*/
 char **filen1 = (char **)malloc(sizeof(char **)*500);
@@ -304,7 +301,7 @@ int sockp[2];
 char channelfolder[130]; strcpy(channelfolder,"channel"); c=0;
 int nextlen[NMUTEXFILES][NMUTEXFILES],recvonly='0',count=0, cnt=0, files2write=0; for(i=0;i<NMUTEXFILES;i++){
 temp[i].sin_addr.s_addr=0; reflect[i]=0; for(j=0; j< NMUTEXFILES; j++){
-nextlen[i][j]=BUF_SIZ; fn[i][j]=0; so[i][j]=0;
+nextlen[i][j]=BUF_SIZ; fn[i][j]=NULL; so[i][j]=0;
 }
 }
 filen= (char *)malloc(sizeof(char)*20);
@@ -395,11 +392,11 @@ if(i < 0) {printf("Cannot join Multicast Group. Waiting in unicast. is this %sse
 
 else if(strcmp(strrchr(addr,'.')+1,"1")) { //if _no_server x.x.x.1
  sendto(sock2,"XOFREADY",9,0,(struct sockaddr *)&src,sizeof(src));
-if((sock3=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
-setsockopt(sock3,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));// IP_DEFAULT_MULTICAST_TTL
-bind(sock3, (struct sockaddr *) &mcast, sizeof(mcast));		
-sockp[0]=sock2; sockp[1]=sock3;
-pipe(sockp);
+//if((sock3=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
+//bind(sock3, (struct sockaddr *) &mcast, sizeof(mcast));		
+//setsockopt(sock3,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));// IP_DEFAULT_MULTICAST_TTL
+sockp[0]=sock2; //sockp[1]=sock3;
+//pipe(sockp);
 //socketpair(AF_UNIX,SOCK_STREAM,0,sockp);
 srcflag= 'R'; 
 }
@@ -411,12 +408,12 @@ if(!files2write && count==1) goto receivelabel;
 while((i=recvfrom(sock2, message, MCASTBUF_SIZ, 0, (struct sockaddr *) &tmp2 , &mlen))!= 0) if(i!=-1) break;
 if(i==-1) continue;
 
+/*
 
 if(message[MCASTBUF_SIZ-3]==1){
 message[MCASTBUF_SIZ-3]=0;
 writen(sock3,message, MCASTBUF_SIZ);
 }
-/*
 if(message[MCASTBUF_SIZ-3] && srcflag){
 channel=message[MCASTBUF_SIZ-2];
 findexmn=message[MCASTBUF_SIZ-1];
@@ -439,7 +436,7 @@ channelport= ((channel-'0') > 0)?channel-'0': channel;
  snprintf(channelfolder+7,4,"%d",channelport);
 strcat(channelfolder,"/");
 strcat(channelfolder,message+6);
-if(fn[channel][findexmn]<1){
+if(fn[channel][findexmn]==NULL){
 if(fopen(channelfolder,"r")){ 
 if((file_ats=strrchr(channelfolder,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strcat(filen,file_ats+1);  strcat(channelfolder,filen);}
 else strcat(channelfolder,"1");
@@ -451,14 +448,14 @@ temp[channel].sin_family=AF_INET;
 temp[channel].sin_addr.s_addr=inet_addr("127.0.0.1");
 temp[channel].sin_port=htons(MCASTP+channelport);}
 }
-else if (opendir(strrchr(channelfolder,'/')) && (fn[channel][findexmn]=open(channelfolder,O_WRONLY | O_CREAT |O_TRUNC)));
+else if (opendir(strrchr(channelfolder,'/')) && (fn[channel][findexmn]=fopen(channelfolder,"w")));
 else if (opendir("channel4all/")){
 char channel4all[120]; strcpy(channel4all,"channel4all/"); strcat(channel4all,message+6);
 if(fopen(channel4all,"r")){ 
 if((file_ats=strrchr(channel4all,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strcat(filen,file_ats+1);  strcat(channel4all,filen);}
 else strcat(channel4all,"1");
 } 
-fn[channel][findexmn]=open(channel4all,O_WRONLY | O_CREAT |O_TRUNC);
+fn[channel][findexmn]=fopen(channel4all,"w"); //O_WRONLY | O_CREAT |O_TRUNC);
 }
 //fprintf(stderr,"Please make this progam root folder read only. Create a folder named channel4all (or the filesharer's channelfolder) under it for right operations of file sharing and multicast streaming.This option is left for network managers use!!:$\n");
 
@@ -467,7 +464,7 @@ if(fopen(message+6,"r")){
 if((file_ats=strrchr(message+6,'.'))){ file_ats[0]='\0';strcpy(filen,"_1.");strcat(filen,file_ats+1);  strcat(message+6,filen);}
 else strcat(message+6,"1");
 }
-fn[channel][findexmn]=open(message+6,O_WRONLY | O_CREAT |O_TRUNC);
+fn[channel][findexmn]=fopen(message+6,"w"); //O_WRONLY | O_CREAT |O_TRUNC);
 strrchr(channelfolder,'/')[1]='\0'; 
 strcat(channelfolder,message+6);
 } 
@@ -523,7 +520,7 @@ message[MCASTBUF_SIZ-2]=0;
 message[MCASTBUF_SIZ-1]=0;
 if(findexmn>0){
 if(fn[channel][findexmn]) {
-writen(fn[channel][findexmn],message,nextlen[channel][findexmn]);
+fwrite(message,1,nextlen[channel][findexmn],fn[channel][findexmn]);
 }
 else  {
 //if(k>0)
@@ -538,8 +535,8 @@ sleep(2);
 }
 if(nextlen[channel][findexmn]!=BUF_SIZ){
 if(fn[channel][findexmn]){
-	close(fn[channel][findexmn]);
-fn[channel][findexmn]=0;
+	fclose(fn[channel][findexmn]);
+fn[channel][findexmn]=NULL;
 fprintf(stderr,"%s %d\n","Finished writing and just closed file ",findexmn);
  } 
 else if(so[channel][findexmn]){
@@ -570,7 +567,7 @@ system(chead+1);}count++;
 }}
 else if((!strncmp(message,"XOFMCAST",8))){ 
 if(srcflag)
- sendto(sock2,"XOFREADY",9,0,(struct sockaddr *)&src,sizeof(src));
+ sendto(sock2,"XOFREADY",9,0,(struct sockaddr *)&tmp2,sizeof(tmp2));
 else return 0;}
 else if(!files2write && !strncmp(message,"-c",2)){
 chead= strchr(message,'~');
