@@ -21,10 +21,13 @@
 #define NMUTEXFILES  256
 extern char *base256(int num,char *str);
 extern int tobase10(char *str);
-extern ssize_t writen(int fd,const void *ptr, size_t n);
-extern ssize_t readn(int fd, void *ptr, size_t n);
-extern ssize_t wrtrdn(int fd, void *ptr, size_t n, ssize_t *fn(int,  void *, size_t
-));
+//extern ssize_t writen(int fd,const void *ptr, size_t n);
+//extern ssize_t readn(int fd, void *ptr, size_t n);
+//extern ssize_t wrtrdn(int fd, void *ptr, size_t n, ssize_t *fn(int,  void *, size_t));
+//extern ssize_t writen(FILE *fd,const void *ptr, size_t n);
+extern ssize_t readn(FILE *fd, void *ptr, size_t n);
+extern ssize_t wrtrdn(FILE *fd, void *ptr, size_t n, size_t fn(void *, size_t,size_t, FILE *));
+
 /*
 
 struct srcmutexfiles {
@@ -189,9 +192,14 @@ strcpy(fcomp+6,argv[2]);
 if(strf){strrchr(fcomp+6,'.')[0]='\0';fcompflag=1;}
 strcat(fcomp,".tgz");
 //create tar cvfz strcat(argv[2],".tgz") 
-int fdin;
-if((fdin=open(argv[2],O_RDONLY))<1)
-{fdin=open(fcomp+6,O_RDONLY); 
+//int fdin;
+//if((fdin=open(argv[2],O_RDONLY))<1)
+//{fdin=open(fcomp+6,O_RDONLY); 
+//argv[2]=fcomp+6;
+//}
+FILE *fdin;
+if(!(fdin=fopen(argv[2],"r")))
+{fdin=fopen(fcomp+6,"r"); 
 argv[2]=fcomp+6;
 }
 if(!fdin) {printf("%s\n","Unable to open file for reading (read permission). is the folder location correct?");
@@ -216,14 +224,21 @@ if(strrchr(argv[2],'/')) filename=strcat(filename,strrchr(argv[2],'/')+1);
 else
 filename=strcat(filename,argv[2]);//initialization 
 
-struct stat statbuf;
-fstat(fdin,&statbuf);
- long size=statbuf.st_size; 
-long ntimes= (statbuf.st_size/BUF_SIZ);
+//struct stat statbuf;
+//fstat(fdin,&statbuf);
+// long size=statbuf.st_size; 
+//long ntimes= (statbuf.st_size/BUF_SIZ);
+fseek(fdin,0L,SEEK_END);
+
+//struct stat statbuf;
+//fstat(fdin,&statbuf);
+ long size= ftell(fdin); fseek(fdin,0L,SEEK_SET); 
+long ntimes= (size/BUF_SIZ);
+
 int rem = size%BUF_SIZ;
 char rem1 =rem/256; 
 char rem2=rem%256;
-char *buffer = (char *)malloc(sizeof(char *)*(statbuf.st_size+MCASTBUF_SIZ -rem)); 
+char *buffer = (char *)malloc(sizeof(char *)*(size+MCASTBUF_SIZ -rem)); 
 //if(srcflag)
 //sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &tmp2,sizeof(tmp2)); 
 filename[MCASTBUF_SIZ-1]=filehash3 ; 
@@ -233,12 +248,12 @@ sc=sendto(sock,filename,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast,sizeof(mcast
 if(sc==-1) {printf("Unable to send, do group exist %s\n", inet_ntoa(mcast.sin_addr));exit(0);}
 
 void *srs,*dst=malloc(sizeof(void *)*3);
-//fdin=open(argv[2],O_RDONLY);
+int fdinx=open(argv[2],O_RDONLY);
 //off_t pa_offset = 0 & ~(sysconf(_SC_PAGE_SIZE)-1);
-srs=mmap(0,size,PROT_READ,MAP_SHARED,fdin,0);
+srs=mmap(0,size,PROT_READ,MAP_SHARED,fdinx,0);
 
 memcpy(buffer,srs,size);
-
+close(fdinx);
 for(i=0,k=0;k< ntimes;k++,i+=BUF_SIZ){
 /*
 n=0;
@@ -280,7 +295,7 @@ buffer[i+MCASTBUF_SIZ-1]=filehash3;
 n=0; j=0;
 while((n=sendto(sock,buffer+i+n,MCASTBUF_SIZ-j, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0){ if(n==-1) continue; j+=n;  if(j==MCASTBUF_SIZ) break; }
 
-close(fdin);
+fclose(fdin);
 }
  }
 }
@@ -599,22 +614,22 @@ else {
 return 0;
 }
 
-ssize_t readn(int fd, void *ptr, size_t n){
- return  wrtrdn(fd,ptr,n,read);
+ssize_t readn(FILE *fd, void *ptr, size_t n){
+ return  wrtrdn(fd,ptr,n,fread);
 }
-ssize_t writen(int fd,const void *ptr, size_t n){
- return  wrtrdn(fd,ptr,n,write);
-}//
-ssize_t wrtrdn(int fd, void *ptr, size_t n, ssize_t *fn(int,  void *, size_t
+//ssize_t writen(int fd,const void *ptr, size_t n){
+// return  wrtrdn(fd,ptr,n,write);
+//}//
+ssize_t wrtrdn(FILE *fd, void *ptr, size_t n, size_t fn( void *,size_t, size_t, FILE *
 )){
-	size_t nleft; ssize_t nwritten;
+	size_t nleft; ssize_t nread;
 	nleft=n;
 	while(nleft>0){
-		if((nwritten=fn(fd,ptr,nleft))<0){ if(nleft==n) return -1;
+		if((nread=fn(ptr,1,nleft,fd))<0){ if(nleft==n) return -1;
 		else break;}
-		else if(nwritten==0) break;
-	nleft-=nwritten;
-	ptr+=nwritten;	} return (n-nleft);
+		else if(nread==0) break;
+	nleft-=nread;
+	ptr+=nread;	} return (n-nleft);
 }
 
 char *base256(int num,char *str){

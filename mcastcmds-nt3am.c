@@ -21,10 +21,9 @@
 #define NMUTEXFILES  256
 extern char *base256(int num,char *str);
 extern int tobase10(char *str);
-extern ssize_t writen(int fd,const void *ptr, size_t n);
-extern ssize_t readn(int fd, void *ptr, size_t n);
-extern ssize_t wrtrdn(int fd, void *ptr, size_t n, ssize_t *fn(int,  void *, size_t
-));
+//extern ssize_t writen(FILE *fd,const void *ptr, size_t n);
+extern ssize_t readn(FILE *fd, void *ptr, size_t n);
+extern ssize_t wrtrdn(FILE *fd, void *ptr, size_t n, size_t fn(void *, size_t,size_t, FILE *));
 /*
 
 struct srcmutexfiles {
@@ -106,7 +105,8 @@ psfp= popen("ip neigh show | grep -o 192.* | grep -v FAILED | tail -1","r");
 if((addr2=strchr(peern,' ')))
  addr2[0]='\0';
  pclose(psfp);
-if(peern[1]!='9'){ fprintf(stderr,"መጀምሪያ በwifi-direct ወይም hotspot ከሌላ (መሳራያ/መሳሪያዎች) ኮኔክት ያድርጉ።  የመሳሪያዎት ቁጥር:%s ለጊዜው ይሄ ነው።  ይሄን ጽሁፍ ካዩ ፕሮግራሙን እንድገና ይጀምሩ።\n",addr); strncpy(peern,addr,INET_ADDRSTRLEN);}
+if(peern[1]!='9'){// fprintf(stderr,"መጀምሪያ በwifi-direct ወይም hotspot ከሌላ (መሳራያ/መሳሪያዎች) ኮኔክት ያድርጉ።  የመሳሪያዎት ቁጥር:%s ለጊዜው ይሄ ነው።  ይሄን ጽሁፍ ካዩ ፕሮግራሙን እንድገና ይጀምሩ።\n",addr); 
+strncpy(peern,addr,INET_ADDRSTRLEN);}
 tmp2.sin_family=src.sin_family=AF_INET;//
 tmp2.sin_port=src.sin_port=htons(MCASTP);
 imr.imr_interface.s_addr=htonl(INADDR_ANY);
@@ -132,8 +132,9 @@ if(!strcmp(strrchr(addr,'.')+1,"1")){ //if _server x.x.x.1
 
 sc= sendto(sock,"test", 5, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 if(sc==-1){ fprintf(stderr,"መቀበያውን ከፍተው ከሆነ ለመላክ...መላክ ወይም መቀበል። ሁለቱን ሳይሆን። \n");
-exit(0);}
+mcast=src;}
 //else fprintf(stderr,"Close if the receiving is on...send or receive. Not both\n");
+if(sc!=-1){
 sc= sendto(sock,"XOFMCAST", 9, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 /*
 psfp= popen("ip neigh show | grep -o 192.* | grep -v FAILED -c","r");
@@ -161,7 +162,7 @@ break;
 }
 }
  }
-
+ }
 if(!strcmp(argv[1],"-c")){
 char *command=(char *) malloc(sizeof(char)*MCASTBUF_SIZ);
 strcpy(command,argv[1]); 
@@ -189,9 +190,9 @@ strcpy(fcomp+6,argv[2]);
 if(strf){strrchr(fcomp+6,'.')[0]='\0';fcompflag=1;}
 strcat(fcomp,".tgz");
 //create tar cvfz strcat(argv[2],".tgz") 
-int fdin;
-if((fdin=open(argv[2],O_RDONLY))<1)
-{fdin=open(fcomp+6,O_RDONLY); 
+FILE *fdin;
+if(!(fdin=fopen(argv[2],"r")))
+{fdin=fopen(fcomp+6,"r"); 
 argv[2]=fcomp+6;
 }
 if(!fdin) {printf("%s\n","መዝገቡ ሊከፍት አልቻለም  ፎልደሩ ልክ ነው ወይ?");
@@ -216,14 +217,16 @@ if(strrchr(argv[2],'/')) filename=strcat(filename,strrchr(argv[2],'/')+1);
 else
 filename=strcat(filename,argv[2]);//initialization 
 
-struct stat statbuf;
-fstat(fdin,&statbuf);
- long size=statbuf.st_size; 
-long ntimes= (statbuf.st_size/BUF_SIZ);
+fseek(fdin,0L,SEEK_END);
+
+//struct stat statbuf;
+//fstat(fdin,&statbuf);
+ long size= ftell(fdin); fseek(fdin,0L,SEEK_SET); 
+long ntimes= (size/BUF_SIZ);
 int rem = size%BUF_SIZ;
 char rem1 =rem/256; 
 char rem2=rem%256;
-char *buffer = (char *)malloc(sizeof(char *)*(statbuf.st_size+MCASTBUF_SIZ -rem)); 
+char *buffer = (char *)malloc(sizeof(char *)*(size+MCASTBUF_SIZ -rem)); 
 //if(srcflag)
 //sc=sendto(sock,filename,strlen(filename)+1, 0, (struct sockaddr *) &tmp2,sizeof(tmp2)); 
 filename[MCASTBUF_SIZ-1]=filehash3 ; 
@@ -233,12 +236,13 @@ sc=sendto(sock,filename,MCASTBUF_SIZ, 0, (struct sockaddr *) &mcast,sizeof(mcast
 if(sc==-1) {printf("መላክ አይችልም  መልቲካስት ግሩፑ በአድራሻው አለ ውይ። %s\n", inet_ntoa(mcast.sin_addr));exit(0);}
 
 void *srs,*dst=malloc(sizeof(void *)*3);
-//fdin=open(argv[2],O_RDONLY);
+int fdinx=open(argv[2],O_RDONLY);
 //off_t pa_offset = 0 & ~(sysconf(_SC_PAGE_SIZE)-1);
-srs=mmap(0,size,PROT_READ,MAP_SHARED,fdin,0);
+srs=mmap(0,size,PROT_READ,MAP_SHARED,fdinx,0);
 
 memcpy(buffer,srs,size);
 
+close(fdinx);
 for(i=0,k=0;k< ntimes;k++,i+=BUF_SIZ){
 /*
 n=0;
@@ -256,7 +260,6 @@ n=0; j=0;
 while((n=sendto(sock,buffer+i+n,MCASTBUF_SIZ-j, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0){if(n==-1) continue; j+=n; if(j==MCASTBUF_SIZ) break; }
 memcpy(buffer+i+MCASTBUF_SIZ-3,dst, 3);
 } 
-
 readn(fdin,buffer+i,rem);
  if(fcompflag){strncpy(fcomp,"rm -f ",6); system(fcomp);}
  char *remn=(char *)malloc(sizeof(char *)*MCASTBUF_SIZ); remn[4]= rem1; remn[5]=rem2;
@@ -280,7 +283,7 @@ buffer[i+MCASTBUF_SIZ-1]=filehash3;
 n=0; j=0;
 while((n=sendto(sock,buffer+i+n,MCASTBUF_SIZ-j, 0, (struct sockaddr *) &mcast, sizeof(mcast)))!=0){ if(n==-1) continue; j+=n;  if(j==MCASTBUF_SIZ) break; }
 
-close(fdin);
+fclose(fdin);
 }
  }
 }
@@ -599,22 +602,22 @@ else {
 return 0;
 }
 
-ssize_t readn(int fd, void *ptr, size_t n){
- return  wrtrdn(fd,ptr,n,read);
+ssize_t readn(FILE *fd, void *ptr, size_t n){
+ return  wrtrdn(fd,ptr,n,fread);
 }
-ssize_t writen(int fd,const void *ptr, size_t n){
- return  wrtrdn(fd,ptr,n,write);
-}//
-ssize_t wrtrdn(int fd, void *ptr, size_t n, ssize_t *fn(int,  void *, size_t
+//ssize_t writen(FILE *fd,const void *ptr, size_t n){
+// return  wrtrdn(fd,ptr,n,fwrite);
+//}//
+ssize_t wrtrdn(FILE *fd, void *ptr, size_t n, size_t fn(void *,size_t, size_t,FILE *
 )){
-	size_t nleft; ssize_t nwritten;
+	size_t nleft; ssize_t nread;
 	nleft=n;
 	while(nleft>0){
-		if((nwritten=fn(fd,ptr,nleft))<0){ if(nleft==n) return -1;
+		if((nread=fn(ptr,1,nleft,fd))<0){ if(nleft==n) return -1;
 		else break;}
-		else if(nwritten==0) break;
-	nleft-=nwritten;
-	ptr+=nwritten;	} return (n-nleft);
+		else if(nread==0) break;
+	nleft-=nread;
+	ptr+=nread;	} return (n-nleft);
 }
 
 char *base256(int num,char *str){
