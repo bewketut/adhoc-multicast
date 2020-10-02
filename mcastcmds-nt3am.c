@@ -79,8 +79,8 @@ char *host= (char *)malloc(sizeof(char)*15);
 gethostname(host,255);
 
 char *useraddr= strcat(strcat(user_p->pw_name,"@"),host);
-useraddr=strcat(useraddr,"~");
 unsigned char fileround_userchannel=useraddr[0] + useraddr[1]-useraddr[2]+ useraddr[strlen(useraddr)-(strlen(useraddr)/2)] - useraddr[strlen(useraddr)-(strlen(useraddr)/3)] + useraddr[strlen(useraddr)- (strlen(useraddr)/4)] - useraddr[strlen(useraddr)-(strlen(useraddr)/5)] ;
+useraddr=strcat(useraddr,"~");
 unsigned char userchannel= fileround_userchannel%NMUTEXFILES;
 int channelname=0;channelname= ((userchannel-'0')> 0)? userchannel-'0': userchannel;
 if(argc!=1 && argc < 3 ){
@@ -113,7 +113,6 @@ imr.imr_interface.s_addr=htonl(INADDR_ANY);
 if(!strcmp(strrchr(addr,'.')+1,"1")){ //if _server x.x.x.1
 imr.imr_interface.s_addr=inet_addr(addr);
 }
-
 src.sin_addr.s_addr=inet_addr(peern);
 
 
@@ -125,10 +124,10 @@ src.sin_addr.s_addr=inet_addr(addr);
 bind(sock, (struct sockaddr *) &src, sizeof(src));
 /*setsockopt(sock,IPPROTO_IP,
 IP_MULTICAST_LOOP, &ttl,sizeof(ttl));*/
-src.sin_addr.s_addr=inet_addr(peern);
 setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));// IP_DEFAULT_MULTICAST_TTL
+src.sin_addr.s_addr=inet_addr(peern);
 
-if(!strcmp(strrchr(addr,'.')+1,"1")){ //if _server x.x.x.1
+if(!strcmp(strrchr(addr,'.')+1,"1") && (toupper(argv[1][1])=='F')){ //if _server x.x.x.1
 
 sc= sendto(sock,"test", 5, 0, (struct sockaddr *) &mcast, sizeof(mcast));
 if(sc==-1){ fprintf(stderr,"መቀበያውን ከፍተው ከሆነ ለመላክ...መላክ ወይም መቀበል። ሁለቱን ሳይሆን። \n");
@@ -293,7 +292,7 @@ else {
 char *argstr= argv[0];
 if(strrchr(argv[0],'/'))argstr=strrchr(argv[0],'/')+1;
 if(strrchr(argv[0],'.'))argstr=strrchr(argv[0],'/');
-fprintf(stderr,"%s%s%s%s%s\n","ኮማንድና ፍይል ለመቀበል ተዛጋጅቷል !\n አሁን ይሄን ያድርጉ፡ ",argstr," -F ፍይልስም ወይም  ",argstr," -c ኮማንድ ስም \n ከሌላ  ተርሚናል ወይም  ኮምፑውተር  ይጻፉ። \n እየጠበቀ ነው ...");
+fprintf(stderr,"%s%s%s%s%s\n","ኮማንድና ፋይል ለመቀበል ተዛጋጅቷል !\n አሁን ይሄን ያድርጉ፡ ",argstr," -F ፍይልስም ወይም  ",argstr," -c ኮማንድ ስም \n ከሌላ  ተርሚናል ወይም  ኮምፑውተር  ይጻፉ። \n እየጠበቀ ነው ...");
 FILE *fn[NMUTEXFILES][NMUTEXFILES]; 
 unsigned char findexmn=0,channel=0, prev;//fflag,k=0,*cm;
  char *chead, *filen,y='x',x,*cwdir= (char *) malloc(sizeof(char)*400);/*,*buff2=(char *)malloc(sizeof(char *)*6*BUF_SIZ)*/
@@ -340,8 +339,10 @@ if(y>='0' && y<='P'){if(y<='9') recvonly=y+1; else recvonly=  y-6;}
   if(recvonly>'0' && recvonly<=('W')){ recvonly--;}
 if(y=='R')recvonly=2;
  if (y=='S' || y=='X' || y=='V'){
-if(y=='X'|| y=='V')
+if(y=='X'|| y=='V'){
+system("ls");
 printf("የመዝገብ ስም ያስገቡ /(ውይም ስሙን ጀምረው * ይጻፉ።):");
+}
 else if(y=='S') printf("$:~");
  fgets(filen,30,stdin);
 strrchr(filen,'\n')[0]='\0'; 
@@ -383,10 +384,12 @@ recvonly--;
 if(count==1) count--;
 if(!(cnt%25)){
                if(!cnt){
-                  tmp2.sin_addr.s_addr= htonl(INADDR_ANY);// inet_addr(addr); 
+                  tmp2.sin_addr.s_addr=htonl(INADDR_ANY); //inet_addr(addr); //  
 		if((sock2=socket(AF_INET, SOCK_DGRAM,0))<0) exit(0);
-             imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
+
 		bind(sock2, (struct sockaddr *) &tmp2, sizeof(tmp2));		
+
+             imr.imr_multiaddr.s_addr=mcastaddr.s_addr;
 //printf("defaultttl፡=%d",IP_DEFAULT_MULTICAST_LOOP);
                             }
 i=setsockopt(sock2, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &imr, sizeof(struct ip_mreq));
@@ -569,8 +572,8 @@ else
 system(chead+1);}count++;
 }}
 else if((!strncmp(message,"XOFMCAST",8))){ 
-if(srcflag)
- sendto(sock2,"XOFREADY",9,0,(struct sockaddr *)&tmp2,sizeof(tmp2));
+if(srcflag=='R')
+ sendto(sock2,"XOFREADY",9,0,(struct sockaddr *)&src,sizeof(src));
 else return 0;}
 else if(!files2write && !strncmp(message,"-c",2)){
 chead= strchr(message,'~');
