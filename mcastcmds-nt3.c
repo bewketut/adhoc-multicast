@@ -126,11 +126,9 @@ src.sin_addr.s_addr=inet_addr(addr);
 //src.sin_addr.s_addr=htonl(INADDR_ANY);//inet_addr("224.0.0.1");// mcastaddr.s_addr;
 
 bind(sock, (struct sockaddr *) &src, sizeof(src));
-/*setsockopt(sock,IPPROTO_IP,
-IP_MULTICAST_LOOP, &ttl,sizeof(ttl));*/
 src.sin_addr.s_addr=inet_addr(peern);
 setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL, &ttl,sizeof(ttl));// IP_DEFAULT_MULTICAST_TTL
-
+setsockopt(sock,IPPROTO_IP,IP_MULTICAST_LOOP, &ttl,sizeof(ttl));
 if(!strcmp(strrchr(addr,'.')+1,"1") && (toupper(argv[1][1])=='F')){ //if _server x.x.x.1
 
 sc= sendto(sock,"test", 5, 0, (struct sockaddr *) &mcast, sizeof(mcast));
@@ -549,7 +547,7 @@ else  {
 //printf("%s val:%d\n",buff2+k*BUF_SIZ,k);
 //sendto(sock2,buff2,k*BUF_SIZ, 0, (struct sockaddr *) &temp[channel], sizeof(temp[channel]));
 while((n=sendto(sock2,message/*buff2+k*BUF_SIZ*/,BUF_SIZ, 0, (struct sockaddr *) &temp[channel], sizeof(temp[channel])))!=0) if(n!=-1) break;
-sleep(2);
+sleep(1);
 }
 if(nextlen[channel][findexmn]!=BUF_SIZ){
 if(fn[channel][findexmn]){
