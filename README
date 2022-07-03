@@ -34,7 +34,8 @@ and it should now open
 
 sim_test
 ========
-This gives a userland simulator to what the kernel module is trying to do.
+This gives a userland simulator to what the kernel module is trying to do. You need the header /linux/list.h stripped for user app. It is basically a circular linked list implentation
+for kernel programs.
 
 related (application level filtering)
 ====================================
@@ -43,8 +44,10 @@ add a control byte (for file exclusion)on the last of to be sent BUF_SIZed data.
 temp= data[BUF_SIZ] //the next start of data array start from 0 so the end of tobe data  is data[BUF_SIZ-1](BUF_SIZ minus 1),
 2.Assign control byte as data[BUF_SIZ]= control byte(filename for example to have mutual exclusive writes of files on a multicast socket)
 3. Write the socket with data of size BUF_SIZ+1.Send the BUF_SIZed data part first then reassign temp  data[BUF_SIZ]=temp so datafile rewritten as was.then send from BUF_SIZ to 2*BUF_SIZ repeating the process from that on until file or data is fully sent. 
+If you are reading BUF_SIZ per read and fseeking to n*BUF_SIZ, you need the buffer to be of size BUF_SIZ+1 (1 for the control byte) in that case you dont need temp value holder.
 mcastcmds-nt3 (employes the above application level filtering mechanism)
 ======================== (works for android too --you can easily share files by your wifi receiver (send and receive ...etc now. ).
+https://github.com/bewketut/multicastandroid 
 For android...1.download a terminal emulator from the app store
 2. then on the commandline 'cp /sdcard/Download/mcastcmds_mobile ~/mcastcmds (or~/mh) (whereever mcastcmds_android was downloaded and mcastshare or mh for commandname if you like).
 3. chmod 755 ~/mh   (~/mcastcmds or the name )
