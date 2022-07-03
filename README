@@ -6,7 +6,7 @@ tool: socat, vlc
 main module is xt_mcast.c  
 --now updated to work with ping if you don't have socat and to use mcastcmds instead of vlc for testing. 
 --Intentional small bug (for it not work) has been removed...
- (copyrighted work)code bug removed and has been made Berlkely license and free
+ (copyrighted work)code bug removed and has been made Berkely license and free
 (Give credit to the copyright owner-Bewketu Tadilo (me)- in any further code). 
 What it does
 ============
